@@ -1,65 +1,57 @@
-# Python ARP Spoofer (Man-in-the-Middle Tool)
+# ARP MITM Lab Architecture and Technical Deep Dive
 
-A custom-built network security tool written in Python using the **Scapy** library. This tool performs an **ARP Spoofing / ARP Poisoning** attack, allowing the attacker to intercept traffic between a specific target (Victim) and a Gateway (Router).
+This document details the configuration, network topology, and technical mechanism used in the ARP Poisoning Man-in-the-Middle (MiTM) lab environment.
 
-This project was developed as part of a cybersecurity lab to demonstrate Man-in-the-Middle (MitM) vulnerabilities in local networks.
+## 1\. Network Topology and Isolation
 
-## 🚀 Features
-- **MAC Address Resolution:** Automatically identifies the hardware address of the target.
-- **ARP Poisoning:** Sends forged ARP responses to trick the victim into mapping the Gateway's IP to the Attacker's MAC address.
-- **Stealth Restoration:** Automatically restores the victim's ARP table to its original state when the script is stopped (Ctrl+C), preventing permanent network disruption.
-- **Traffic Forwarding:** Works in conjunction with Linux IP forwarding to maintain the victim's connection.
+The lab is hosted entirely within Oracle VirtualBox using a **3-Tier topology** to simulate a local area network segment under attack.
 
-## 🛠️ Prerequisites
+### Network Configuration Details
 
-To run this tool, you need:
-* **OS:** Linux (Kali Linux recommended).
-* **Language:** Python 3.
-* **Libraries:** Scapy (`pip install scapy`).
-* **Privileges:** Root / Sudo access (required to send raw packets).
+- **Isolation Method:** **Internal Network (ARP_Lab)**
+  - This setting creates a virtual, isolated switch. All VMs on this network can only communicate with each other, ensuring the penetration test remains ethical and does not affect the host computer's external network.
+- **Packet Visibility:** The Attacker VM's network adapter (eth0) is set to **Promiscuous Mode: Allow All**.
+  - This allows the Kali machine to bypass standard network filtering and capture packets not explicitly addressed to its MAC address, which is crucial for intercepting traffic.
+- **Network Addressing:** All machines are assigned static IP addresses from the reserved private range 192.168.1.0/24.
 
-## 🧪 Lab Environment Setup
+## 2\. Machine Roles and Configurations
 
-This tool was designed and tested in a virtualized **VirtualBox** environment.
+| **Machine** | **Role** | **Operating System** | **Network Card (Lab)** | **IP Address** | **Key Configuration** |
+| --- | --- | --- | --- | --- | --- |
+| **Kali Attacker** | Man-in-the-Middle | Kali Linux | eth0 | 192.168.1.10 | IP Forwarding Enabled, Custom Python Tool Host. |
+| --- | --- | --- | --- | --- | --- |
+| **Ubuntu Victim** | Client / Target | Ubuntu Desktop | enp0s3 | 192.168.1.20 | Browser used to generate target traffic (HTTP). |
+| --- | --- | --- | --- | --- | --- |
+| **Ubuntu Server** | Data Host / Gateway Target | Ubuntu Server | enp0s3 | 192.168.1.30 | Runs python3 -m http.server 80 to simulate an intranet web server. |
+| --- | --- | --- | --- | --- | --- |
 
-**1. The Network:**
-* **Type:** VirtualBox Internal Network (Name: `ARP_Lab`)
-* **Gateway (Fake):** `192.168.1.1` (No physical machine, logical mapping only)
+## 3\. Technical Mechanism: The Double-Sided Poison
 
-**2. The Machines:**
-| Role | OS | IP Address | MAC Address |
-| :--- | :--- | :--- | :--- |
-| **Attacker** | Kali Linux | `192.168.1.10` | *Changes per VM* |
-| **Victim** | Ubuntu | `192.168.1.20` | *Changes per VM* |
+The attack exploits the **Address Resolution Protocol (ARP)**, which is fundamentally untrustworthy as it lacks authentication.
 
----
+### The Attack Flow
 
-## 💻 How to Use
+The Attacker (1.10) sits between the Victim (1.20) and the Server (1.30). The goal is to deceive both machines:
 
-### Step 1: Prepare the Attacker (Kali)
-Before running the script, you must enable **IP Forwarding** so the victim's packets pass through your machine instead of being dropped.
+- **Poison Victim (1.20):** The Attacker sends continuous, forged ARP Reply packets to the Victim saying:_"Hey 1.20, I am the Server (1.30), and my MAC address is_ **_08:00:27:AA:BB:CC_** _(Attacker's MAC)."_
+  - **Effect:** The Victim updates its ARP cache to route all traffic destined for the Server's IP (1.30) to the **Attacker's MAC address**.
+- **Poison Server (1.30):** The Attacker sends forged ARP Reply packets to the Server saying:_"Hey 1.30, I am the Victim (1.20), and my MAC address is_ **_08:00:27:AA:BB:CC_** _(Attacker's MAC)."_
+  - **Effect:** The Server updates its ARP cache to route all traffic destined for the Victim's IP (1.20) to the **Attacker's MAC address**.
 
-echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+### Result: Interception
 
-### Step 2: Run the Tool
-Clone the repository and run the script with `sudo`.
+Because traffic must now flow through the Attacker in both directions, the Attacker can inspect the plain HTTP packets using Wireshark, capturing sensitive data before forwarding it on to the correct destination.
 
-sudo python3 arp_spoof.py -t [TARGET_IP] -g [GATEWAY_IP]
+## 4\. Tool Implementation Details (Python/Flask)
 
-Example (For this Lab): sudo python3 arp_spoof.py -t 192.168.1.20 -g 192.168.1.1
-You should see output indicating that packets are being sent
+### Custom ARP Tool
 
-### Verification & Cache flushing
-To prove the attack works, or to reset the lab for a fresh test, follow these steps on the Victim Machine (Ubuntu).
+- **Library:** **Scapy** is used to craft and send raw layer-2 (Ethernet) packets (scapy.ARP).
+- **Spoof Function:** The core spoof(target_ip, spoof_ip) function uses op=2 (ARP Reply) and sets the psrc (source IP) to the machine it is impersonating.
+- **Restoration:** The restore() function retrieves the legitimate MAC addresses and sends corrective ARP packets (count=4) to clean the victims' caches upon exiting the script.
 
-1. Verify the Attack (Is it poisoned?)
-Run the following command on the Victim to see the ARP table: ip neigh
+### Flask Dashboard
 
-Success Criteria:
-    Look at the MAC address for the Gateway (192.168.1.1).
-    Look at the MAC address for the Attacker (192.168.1.10).
-    If they are identical, the ARP cache is poisoned, and the attack is successful.
-
-2. Flush the ARP Cache (Reset)
-If you need to clear the victim's memory to test the script again from scratch:
-sudo ip neigh flush all
+- **Background Execution:** The ARP poisoning loop is executed in a separate **Python Thread** to prevent the Flask web server from freezing.
+- **Control:** A threading.Event is used for communication, allowing the web buttons to safely start and stop the persistent attack loop.
+- **IP Forwarding:** The script automatically enables IP forwarding (net.ipv4.ip_forward = 1) at launch and reverts it to 0 during cleanup, ensuring the MiTM route is active only during the attack.
