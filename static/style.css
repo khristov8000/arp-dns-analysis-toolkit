@@ -17,7 +17,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 20px;
+    padding-bottom: 0px;
 }
 
 .title {
@@ -51,10 +51,11 @@ body {
 }
 
 /* Status Colors */
-.idle { color: #888; }
-.running { color: #4cff79; }
-.error { color: #ff4f4f; }
+.status-text.idle { color: #888; }
+.status-text.running { color: #4cff79; }
+.status-text.error { color: #ff4f4f; }
 
+.status-dot.idle { background: #555; box-shadow: none; }
 .status-dot.running { background: #4cff79; box-shadow: 0 0 10px #4cff79; }
 .status-dot.error   { background: #ff4f4f; box-shadow: 0 0 10px #ff4f4f; }
 
@@ -62,6 +63,13 @@ body {
 .grid {
     display: grid;
     grid-template-columns: 350px auto;
+    gap: 25px;
+}
+
+/* Right column wrapper */
+.right-column {
+    display: flex;
+    flex-direction: column;
     gap: 25px;
 }
 
@@ -100,6 +108,7 @@ input {
     border-radius: 6px;
     color: #e3e3e3;
     margin-top: 5px;
+    box-sizing: border-box; 
 }
 
 .disabled {
@@ -159,13 +168,18 @@ input {
 /* ======= CONSOLE ======= */
 .console {
     background: #0b0c0f;
-    padding: 12px;
-    height: 400px;
+    padding: 10px;
+    height: 180px; /* SMALLER FIXED HEIGHT */
     overflow-y: auto;
     border-radius: 6px;
     font-family: "JetBrains Mono", monospace;
     font-size: 13px;
     border: 1px solid #21242c;
+}
+
+/* NEW: Specific height for the data intercept console */
+.data-intercepts-console {
+    height: 200px; /* MATCHING HEIGHT */
 }
 
 .log-entry {
@@ -178,3 +192,9 @@ input {
 .log-entry.warning { color: #ffd86b; }
 .log-entry.error   { color: #ff4f4f; }
 .log-entry.sent    { color: #67c8ff; }
+
+/* Intercept specific styling */
+.intercept-entry {
+    border-left: 3px solid #ff8c42;
+    padding-left: 8px;
+}

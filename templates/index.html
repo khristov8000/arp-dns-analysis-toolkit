@@ -11,7 +11,7 @@
 <div class="container">
 
     <header class="topbar">
-        <h1 class="title">ARP & DNS TOOLKIT <span class="version">PROFESSIONAL EDITION</span></h1>
+        <h1 class="title">ARP & DNS TOOLKIT</h1>
 
         <div class="status-display">
             <div id="status-dot" class="status-dot idle"></div>
@@ -21,7 +21,7 @@
 
     <div class="grid">
 
-        <!-- LEFT PANEL -->
+        <!-- LEFT PANEL (CONFIG) -->
         <div class="panel">
             <h2>Attack Configuration</h2>
 
@@ -46,23 +46,36 @@
             </div>
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div class="panel logs">
-            <div class="metrics">
-                <div class="metric">
-                    <span class="metric-label">Packets Sent</span>
-                    <span class="metric-value" id="packet_count">0</span>
+        <!-- RIGHT COLUMN WRAPPER -->
+        <div class="right-column">
+            
+            <!-- PANEL 1: METRICS & CONSOLE -->
+            <div class="panel logs">
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">Packets Sent</span>
+                        <span class="metric-value" id="packet_count">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Target MAC</span>
+                        <span class="metric-value" id="target_mac">{{ data.target_mac if data.target_mac != 'N/A' else 'RESOLVING...' }}</span>
+                    </div>
                 </div>
-                <div class="metric">
-                    <span class="metric-label">Target MAC</span>
-                    <span class="metric-value" id="target_mac">{{ data.target_mac if data.target_mac != 'N/A' else 'RESOLVING...' }}</span>
+
+                <h2>Console Output</h2>
+                <div id="console-output" class="console">
+                    <div class="log-entry">System Initialized. Waiting for commands...</div>
                 </div>
             </div>
 
-            <h2>Console Output</h2>
-            <div id="console-output" class="console">
-                <div class="log-entry">System Initialized. Waiting for commands...</div>
+            <!-- PANEL 2: SENSITIVE DATA (NEW) -->
+            <div class="panel">
+                <h2 style="color: #ff8c42;">Sensitive Data Intercepts</h2>
+                <div id="data_output" class="console data-intercepts-console">
+                    <div class="log-entry" style="opacity: 0.5;">Waiting for HTTP/Credential traffic...</div>
+                </div>
             </div>
+
         </div>
     </div>
 
@@ -70,10 +83,10 @@
 
 <script>
     function getLogClass(message) {
-        if (message.includes("SUCCESS") || message.includes("Resolved")) return "success";
+        if (message.includes("SUCCESS") || message.includes("RESOLVED")) return "success";
         if (message.includes("WARNING") || message.includes("unreachable")) return "warning";
         if (message.includes("ERROR") || message.includes("FATAL")) return "error";
-        if (message.includes("SENT") || message.includes("Attack Launched")) return "sent";
+        if (message.includes("SENT") || message.includes("Attack launched")) return "sent";
         return "";
     }
 
@@ -95,9 +108,11 @@
         fetch('/update')
         .then(r => r.json())
         .then(data => {
+            // Metrics
             document.getElementById('packet_count').innerText = data.packets;
             document.getElementById('target_mac').innerText = data.target_mac;
 
+            // Status
             const statusText = document.getElementById('status-text');
             const statusDot  = document.getElementById('status-dot');
 
@@ -105,15 +120,40 @@
             statusText.className = "status-text " + data.state.toLowerCase();
             statusDot.className  = "status-dot " + data.state.toLowerCase();
 
+            // Main Console
             const consoleDiv = document.getElementById('console-output');
             consoleDiv.innerHTML = "";
-
             data.logs.slice().reverse().forEach(log => {
                 const div = document.createElement('div');
                 div.className = "log-entry " + getLogClass(log);
                 div.innerText = log;
                 consoleDiv.appendChild(div);
             });
+
+            // Data Intercepts Console
+            const dataDiv = document.getElementById('data_output');
+            dataDiv.innerHTML = "";
+            
+            if (data.intercepted_data && data.intercepted_data.length > 0) {
+                data.intercepted_data.slice().reverse().forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "log-entry intercept-entry";
+                    
+                    let color = "#ff8c42"; // Default Orange
+                    
+                    if (item.type === "ALERT") {
+                        color = "#ff4f4f"; // Red
+                        div.style.borderLeft = "3px solid #ff4f4f";
+                        div.style.paddingLeft = "8px";
+                    }
+
+                    // Formatting without icons
+                    div.innerHTML = `<span style="opacity:0.5; margin-right:10px;">[${item.time}]</span> <span style="color:${color};">${item.src} > ${item.dst}:</span> <b style="color:#e3e3e3;">${item.snippet}</b>`;
+                    dataDiv.appendChild(div);
+                });
+            } else {
+                dataDiv.innerHTML = '<div class="log-entry" style="opacity:0.5">Waiting for HTTP traffic...</div>';
+            }
         });
     }
 
