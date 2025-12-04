@@ -39,6 +39,7 @@ Before starting the attack, verify that all three Virtual Machines are running a
    *Check:* Ensure `eth0` has the IP `192.168.1.10`.
    *If missing, run:*
    > sudo ip addr add 192.168.1.10/24 dev eth0
+   
    > sudo ip link set eth0 up
 
 2. **Start the Dashboard:**
