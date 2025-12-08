@@ -1,38 +1,50 @@
-/*           GLOBAL CSS          */
+/* ======= GLOBAL ======= */
 body {
+    margin: 0;
     font-family: "Inter", sans-serif;
     background: #0d0f12;
     color: #e3e3e3;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .container {
     width: 90%;
+    max-width: 1100px;
     margin: auto;
-    padding-top: 20px;
 }
 
-
-/*           HEADER BAR          */
+/* ======= HEADER ======= */
 .topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #1f2229;
+    margin-bottom: 25px;
 }
 
 .title {
-    font-size: 23px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: 1px;
 }
 
-/* Real‑time status display wrapper */
+.version {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-left: 10px;
+    text-transform: uppercase;
+}
+
 .status-display {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-/* Colored indicator representing IDLE/RUNNING/ERROR */
 .status-dot {
     width: 14px;
     height: 14px;
@@ -43,9 +55,10 @@ body {
 
 .status-text {
     font-weight: bold;
+    font-size: 14px;
 }
 
-/* Color-coded status states */
+/* Status Colors */
 .status-text.idle { color: #888; }
 .status-text.running { color: #4cff79; }
 .status-text.error { color: #ff4f4f; }
@@ -54,23 +67,20 @@ body {
 .status-dot.running { background: #4cff79; box-shadow: 0 0 10px #4cff79; }
 .status-dot.error   { background: #ff4f4f; box-shadow: 0 0 10px #ff4f4f; }
 
-
-/*      MAIN GRID LAYOUT         */
+/* ======= GRID ======= */
 .grid {
     display: grid;
     grid-template-columns: 350px auto;
-    gap: 20px;
+    gap: 25px;
 }
 
-/* Container for right‑side panels */
 .right-column {
     display: flex;
     flex-direction: column;
     gap: 25px;
 }
 
-
-/*        PANEL COMPONENTS        */
+/* ======= PANELS ======= */
 .panel {
     background: #15171c;
     padding: 20px;
@@ -85,18 +95,53 @@ body {
     margin-bottom: 20px;
     font-size: 18px;
     font-weight: 600;
+    color: #ccc;
 }
 
+/* ======= TABS ======= */
+.tab-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
 
-/*       FORM INPUT STYLING       */
-.input-group { margin-bottom: 18px; }
+.tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: #0d0f12;
+    border: 1px solid #333;
+    color: #888;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 4px;
+    transition: 0.3s;
+}
+
+.tab-btn.active {
+    background: #1f7dff;
+    color: white;
+    border-color: #1f7dff;
+}
+
+.tab-btn:hover { background: #1f2229; }
+.tab-btn.active:hover { background: #1f7dff; }
+
+
+/* ======= INPUTS ======= */
+.input-group {
+    margin-bottom: 18px;
+}
 
 label {
     font-size: 12px;
     opacity: 0.7;
+    display: block;
+    margin-bottom: 5px;
 }
 
-input {
+input[type="text"] {
     width: 100%;
     padding: 10px;
     background: #0f1115;
@@ -104,16 +149,16 @@ input {
     border-radius: 6px;
     color: #e3e3e3;
     margin-top: 5px;
-    box-sizing: border-box;
+    box-sizing: border-box; 
 }
 
-/* Read‑only fields like the interface name */
 .disabled {
     background: #131518;
     opacity: 0.6;
+    cursor: not-allowed;
 }
 
-/*        BUTTON COMPONENTS       */
+/* ======= BUTTONS ======= */
 .button-row {
     display: flex;
     gap: 10px;
@@ -129,30 +174,47 @@ input {
     border: none;
     transition: 0.2s ease;
     text-transform: uppercase;
+    font-size: 13px;
 }
 
-.start { background: #1f7dff; color: white; }
-.stop  { background: #ff3b3b; color: white; }
+.start {
+    background: #1f7dff;
+    color: white;
+}
 
-.btn:hover { opacity: 0.85; }
+.stop {
+    background: #ff3b3b;
+    color: white;
+}
 
+.btn:hover {
+    opacity: 0.85;
+}
 
-/*        METRIC DISPLAYS        */
+/* ======= METRICS ======= */
 .metrics {
     display: flex;
     justify-content: space-between;
     margin-bottom: 15px;
 }
 
-.metric-label { font-size: 12px; opacity: 0.7; }
-.metric-value { font-size: 18px; font-weight: bold; }
+.metric-label {
+    font-size: 12px;
+    opacity: 0.7;
+    text-transform: uppercase;
+}
 
+.metric-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+}
 
-/*          CONSOLE AREA          */
+/* ======= CONSOLES ======= */
 .console {
     background: #0b0c0f;
-    padding: 10px;
-    height: 160px;
+    padding: 12px;
+    height: 200px;
     overflow-y: auto;
     border-radius: 6px;
     font-family: "JetBrains Mono", monospace;
@@ -160,7 +222,6 @@ input {
     border: 1px solid #21242c;
 }
 
-/* Enlarged console for sensitive‑data capture */
 .data-intercepts-console { height: 200px; }
 
 .log-entry {
@@ -168,13 +229,11 @@ input {
     border-bottom: 1px solid #15171c;
 }
 
-/* Log color variations */
 .log-entry.success { color: #4cff79; }
 .log-entry.warning { color: #ffd86b; }
 .log-entry.error   { color: #ff4f4f; }
 .log-entry.sent    { color: #67c8ff; }
 
-/* Special formatting for intercepted secrets */
 .intercept-entry {
     border-left: 3px solid #ff8c42;
     padding-left: 8px;

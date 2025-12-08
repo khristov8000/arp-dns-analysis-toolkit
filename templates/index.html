@@ -1,203 +1,205 @@
-<!--
-ARP & DNS Toolkit - Frontend Interface
-=====================================
-This file defines the visual interface and client-side logic for the
-ARP/DNS MITM dashboard. It contains:
-- A modern dark UI (CSS)
-- Status indicators and configuration inputs
-- Live packet/credential console displays
-- JavaScript helpers for communicating with the Flask backend
--->
-
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ARP & DNS Toolkit</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARP & DNS Toolkit</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 
-    <body>
-        
-    <!--            HTML UI            -->
-    <div class="container">
-        <header class="topbar">
-            <h1 class="title">ARP & DNS TOOLKIT</h1>
+<body>
+<div class="container">
 
-            <!-- Status indicator linked to backend state -->
-            <div class="status-display">
-                <div id="status-dot" class="status-dot idle"></div>
-                <span id="status-text" class="status-text idle">IDLE</span>
+    <header class="topbar">
+        <h1 class="title">ARP & DNS TOOLKIT <span class="version">PROFESSIONAL EDITION</span></h1>
+        <div class="status-display">
+            <div id="status-dot" class="status-dot idle"></div>
+            <span id="status-text" class="status-text idle">IDLE</span>
+        </div>
+    </header>
+
+    <div class="grid">
+        <div class="panel">
+            <h2>Attack Configuration</h2>
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="switchTab('arp')">ARP Mode</button>
+                <button class="tab-btn" onclick="switchTab('dns')">DNS Mode</button>
             </div>
-        </header>
 
-        <div class="grid">
+            <div class="input-group">
+                <label>Target IP</label>
+                <input type="text" id="target_ip" value="{{ data.target }}">
+            </div>
+            <div class="input-group">
+                <label>Gateway IP</label>
+                <input type="text" id="gateway_ip" value="{{ data.gateway }}">
+            </div>
+            <div class="input-group">
+                <label>Network Interface</label>
+                <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
+            </div>
 
-            
-            <!--   LEFT PANEL — Attack Configuration -->
+            <div id="dns-settings" style="display: none; border-top: 1px dashed #333; padding-top: 15px; margin-top: 15px;">
+                <label style="color: #58a6ff; font-weight:bold; margin-bottom:10px; display:block;">DNS CONFIGURATION</label>
+                <div class="input-group">
+                    <label>Target Domain</label>
+                    <input type="text" id="dns_domain" placeholder="e.g. www.example.com">
+                </div>
+                <div class="input-group">
+                    <label>Redirect IP</label>
+                    <input type="text" id="dns_ip" value="{{ data.gateway }}">
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button id="toggle-btn" class="btn start" onclick="toggleAttack()">LAUNCH ARP ATTACK</button>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="panel logs">
+                <div class="metrics">
+                    <div class="metric">
+                        <span class="metric-label">Packets</span>
+                        <span class="metric-value" id="packet_count">0</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Mode</span>
+                        <span class="metric-value" id="current_mode">NONE</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Target MAC</span>
+                        <span class="metric-value" id="target_mac">{{ data.target_mac }}</span>
+                    </div>
+                </div>
+                <h2>Console Output</h2>
+                <div id="console-output" class="console">
+                    <div class="log-entry">Select a mode above and launch.</div>
+                </div>
+            </div>
+
             <div class="panel">
-                <h2>Attack Configuration</h2>
-
-                <!-- Target machine IP -->
-                <div class="input-group">
-                    <label>Target IP</label>
-                    <input type="text" id="target_ip" value="{{ data.target }}">
+                <h2 style="color: #ff8c42;">Sensitive Data</h2>
+                <div id="data_output" class="console data-intercepts-console">
+                    <div class="log-entry" style="opacity: 0.5;">Waiting for traffic...</div>
                 </div>
-
-                <!-- Gateway/router IP -->
-                <div class="input-group">
-                    <label>Gateway IP</label>
-                    <input type="text" id="gateway_ip" value="{{ data.gateway }}">
-                </div>
-
-                <!-- Read‑only interface name -->
-                <div class="input-group">
-                    <label>Network Interface</label>
-                    <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
-                </div>
-
-                <!-- Start / Stop controls -->
-                <div class="button-row">
-                    <button class="btn start" onclick="sendCommand('start')">Launch Attack</button>
-                    <button class="btn stop" onclick="sendCommand('stop')">Stop Attack</button>
-                </div>
-            </div>
-
-            
-            <!-- RIGHT COLUMN — Logs & Intercepts  -->
-            <div class="right-column">
-
-                <!-- Main Runtime Logs Panel -->
-                <div class="panel logs">
-                    <div class="metrics">
-                        <div class="metric">
-                            <span class="metric-label">Packets Sent</span>
-                            <span class="metric-value" id="packet_count">0</span>
-                        </div>
-
-                        <div class="metric">
-                            <span class="metric-label">Target MAC</span>
-                            <span class="metric-value" id="target_mac">{{ data.target_mac if data.target_mac != 'N/A' else 'RESOLVING...' }}</span>
-                        </div>
-                    </div>
-
-                    <h2>Console Output</h2>
-
-                    <!-- Live scrolling system log window -->
-                    <div id="console-output" class="console">
-                        <div class="log-entry">System Initialized. Waiting for commands...</div>
-                    </div>
-                </div>
-
-                <!-- Sensitive Data Capture Panel -->
-                <div class="panel">
-                    <h2 style="color: #ff8c42;">Sensitive Data Intercepts</h2>
-
-                    <div id="data_output" class="console data-intercepts-console">
-                        <div class="log-entry" style="opacity: 0.5;">Waiting for HTTP/Credential traffic...</div>
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
+</div>
 
+<script>
+    let currentTab = 'arp';
+    let isRunning = false;
 
-    <!--      CLIENT‑SIDE JAVASCRIPT    -->
-    <script>
-        /*
-        Determines the appropriate CSS class for a log message
-        based on its content.
-        */
-        function getLogClass(message) {
-            if (message.includes("SUCCESS") || message.includes("RESOLVED")) return "success";
-            if (message.includes("WARNING") || message.includes("unreachable")) return "warning";
-            if (message.includes("ERROR") || message.includes("FATAL")) return "error";
-            if (message.includes("SENT") || message.includes("Attack launched")) return "sent";
-            return "";
+    function switchTab(mode) {
+        if(isRunning) return;
+        currentTab = mode;
+        const dnsSettings = document.getElementById('dns-settings');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const tabs = document.querySelectorAll('.tab-btn');
+
+        if (mode === 'dns') {
+            dnsSettings.style.display = 'block';
+            toggleBtn.innerText = "LAUNCH DNS ATTACK";
+            tabs[1].classList.add('active');
+            tabs[0].classList.remove('active');
+        } else {
+            dnsSettings.style.display = 'none';
+            toggleBtn.innerText = "LAUNCH ARP ATTACK";
+            tabs[0].classList.add('active');
+            tabs[1].classList.remove('active');
         }
+    }
 
-        /*
-        Sends a Start/Stop command to the backend,
-        passing the current UI configuration values.
-        */
-        function sendCommand(action) {
-            const target = document.getElementById('target_ip').value;
-            const gateway = document.getElementById('gateway_ip').value;
-            const iface = document.getElementById('interface_name').value;
+    function toggleAttack() {
+        const target = document.getElementById('target_ip').value;
+        const gateway = document.getElementById('gateway_ip').value;
+        const iface = document.getElementById('interface_name').value;
+        const dnsDomain = document.getElementById('dns_domain').value;
+        const dnsIp = document.getElementById('dns_ip').value;
+        
+        const action = isRunning ? 'stop' : (currentTab === 'dns' ? 'start_dns' : 'start_arp');
 
-            fetch('/action', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action: action, target: target, gateway: gateway, interface: iface })
+        fetch('/action', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+                action: action, 
+                target: target, 
+                gateway: gateway, 
+                interface: iface,
+                dns_domain: dnsDomain,
+                dns_ip: dnsIp
             })
-            .then(r => r.json())
-            .then(() => updateDashboard());
-        }
+        }).then(() => updateDashboard());
+    }
 
-        /*
-        Pulls the latest runtime state from the backend
-        and updates:
-        - status indicators
-        - packet counters
-        - log consoles
-        - intercepted data list
-        */
-        function updateDashboard() {
-            fetch('/update')
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('packet_count').innerText = data.packets;
-                document.getElementById('target_mac').innerText = data.target_mac;
+    function getLogClass(message) {
+        if (message.includes("SUCCESS") || message.includes("RESOLVED")) return "success";
+        if (message.includes("WARNING") || message.includes("unreachable")) return "warning";
+        if (message.includes("ERROR") || message.includes("FATAL")) return "error";
+        return "";
+    }
 
-                // State indicator visuals
-                const statusText = document.getElementById('status-text');
-                const statusDot  = document.getElementById('status-dot');
+    function updateDashboard() {
+        fetch('/update').then(r => r.json()).then(data => {
+            document.getElementById('packet_count').innerText = data.packets;
+            document.getElementById('target_mac').innerText = data.target_mac;
+            document.getElementById('current_mode').innerText = data.mode;
 
-                statusText.innerText = data.state;
-                statusText.className = "status-text " + data.state.toLowerCase();
-                statusDot.className  = "status-dot " + data.state.toLowerCase();
+            const toggleBtn = document.getElementById('toggle-btn');
+            isRunning = (data.state === "RUNNING");
+            
+            if (isRunning) {
+                toggleBtn.innerText = "STOP ATTACK";
+                toggleBtn.className = "btn stop";
+            } else {
+                toggleBtn.innerText = currentTab === 'dns' ? "LAUNCH DNS ATTACK" : "LAUNCH ARP ATTACK";
+                toggleBtn.className = "btn start";
+            }
 
-                // Refresh main console
-                const consoleDiv = document.getElementById('console-output');
-                consoleDiv.innerHTML = "";
-                data.logs.slice().reverse().forEach(log => {
-                    const div = document.createElement('div');
-                    div.className = "log-entry " + getLogClass(log);
-                    div.innerText = log;
-                    consoleDiv.appendChild(div);
-                });
+            const statusText = document.getElementById('status-text');
+            const statusDot = document.getElementById('status-dot');
+            statusText.innerText = data.state;
+            statusText.className = "status-text " + data.state.toLowerCase();
+            statusDot.className = "status-dot " + data.state.toLowerCase();
 
-                // Refresh sensitive intercepts
-                const dataDiv = document.getElementById('data_output');
-                dataDiv.innerHTML = "";
-
-                if (data.intercepted_data && data.intercepted_data.length > 0) {
-                    data.intercepted_data.slice().reverse().forEach(item => {
-                        const div = document.createElement('div');
-                        div.className = "log-entry intercept-entry";
-
-                        let color = "#ff8c42";
-                        if (item.type === "ALERT") {
-                            color = "#ff4f4f";
-                            div.style.borderLeft = "3px solid #ff4f4f";
-                        }
-
-                        div.innerHTML = `<span style="opacity:0.5; margin-right:10px;">[${item.time}]</span>
-                                        <span style="color:${color};">${item.src} > ${item.dst}:</span>
-                                        <b style="color:#e3e3e3;">${item.snippet}</b>`;
-                        dataDiv.appendChild(div);
-                    });
-                } else {
-                    dataDiv.innerHTML = '<div class="log-entry" style="opacity:0.5">Waiting for HTTP traffic...</div>';
-                }
+            const consoleDiv = document.getElementById('console-output');
+            consoleDiv.innerHTML = "";
+            data.logs.slice().reverse().forEach(log => {
+                const div = document.createElement('div');
+                div.className = "log-entry " + getLogClass(log);
+                div.innerText = log;
+                consoleDiv.appendChild(div);
             });
-        }
 
-        /* Poll backend every second for live updates */
-        setInterval(updateDashboard, 1000);
-    </script>
+            const dataDiv = document.getElementById('data_output');
+            dataDiv.innerHTML = "";
+            if (data.intercepted_data.length > 0) {
+                data.intercepted_data.slice().reverse().forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "log-entry intercept-entry";
+                    let color = "#ff8c42";
+                    if (item.type === "ALERT") { color = "#ff4f4f"; div.style.borderLeft = "3px solid #ff4f4f"; }
+                    if (item.type === "HTML") { color = "#58a6ff"; div.style.borderLeft = "3px solid #58a6ff"; }
 
-    </body>
+                    // LINK TO VIEW CONTENT
+                    div.innerHTML = `
+                        <div style="font-size:11px; color:#555; display:flex; justify-content:space-between;">
+                            <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
+                            <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; text-decoration:none; font-weight:bold;">[VIEW FULL]</a>
+                        </div>
+                        <div style="color:#e3e3e3; margin-top:2px; font-family:monospace;">${item.snippet}</div>
+                    `;
+                    dataDiv.appendChild(div);
+                });
+            } else {
+                dataDiv.innerHTML = '<div class="log-entry" style="opacity:0.5">Waiting for traffic...</div>';
+            }
+        });
+    }
+    setInterval(updateDashboard, 1000);
+</script>
+</body>
 </html>
