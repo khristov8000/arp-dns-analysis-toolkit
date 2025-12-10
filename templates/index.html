@@ -21,9 +21,11 @@
     <div class="grid">
         <div class="panel">
             <h2>Attack Configuration</h2>
+            
             <div class="tab-container">
                 <button class="tab-btn active" onclick="switchTab('arp')">ARP Mode</button>
                 <button class="tab-btn" onclick="switchTab('dns')">DNS Mode</button>
+                <button class="tab-btn" onclick="switchTab('ssl')">SSL Strip</button>
             </div>
 
             <div class="input-group">
@@ -48,6 +50,14 @@
                 <div class="input-group">
                     <label>Redirect IP</label>
                     <input type="text" id="dns_ip" value="{{ data.gateway }}">
+                </div>
+            </div>
+            
+            <div id="ssl-info" style="display: none; border-top: 1px dashed #333; padding-top: 15px; margin-top: 15px;">
+                <label style="color: #ff8c42; font-weight:bold; margin-bottom:10px; display:block;">SSL STRIP INFO</label>
+                <div style="font-size: 12px; color: #888; line-height: 1.4;">
+                    Attempts to downgrade HTTPS connections to HTTP.<br>
+                    <strong>Note:</strong> Will not work on HSTS sites (e.g. Google/FB).
                 </div>
             </div>
 
@@ -96,19 +106,31 @@
         if(isRunning) return;
         currentTab = mode;
         const dnsSettings = document.getElementById('dns-settings');
+        const sslInfo = document.getElementById('ssl-info');
         const toggleBtn = document.getElementById('toggle-btn');
         const tabs = document.querySelectorAll('.tab-btn');
 
+        // Reset Tabs
+        tabs.forEach(t => t.classList.remove('active'));
+
+        // Logic for Modes
         if (mode === 'dns') {
             dnsSettings.style.display = 'block';
+            sslInfo.style.display = 'none';
             toggleBtn.innerText = "LAUNCH DNS ATTACK";
             tabs[1].classList.add('active');
-            tabs[0].classList.remove('active');
-        } else {
+        } 
+        else if (mode === 'ssl') {
             dnsSettings.style.display = 'none';
+            sslInfo.style.display = 'block';
+            toggleBtn.innerText = "LAUNCH SSL STRIP";
+            tabs[2].classList.add('active');
+        } 
+        else {
+            dnsSettings.style.display = 'none';
+            sslInfo.style.display = 'none';
             toggleBtn.innerText = "LAUNCH ARP ATTACK";
             tabs[0].classList.add('active');
-            tabs[1].classList.remove('active');
         }
     }
 
@@ -119,7 +141,11 @@
         const dnsDomain = document.getElementById('dns_domain').value;
         const dnsIp = document.getElementById('dns_ip').value;
         
-        const action = isRunning ? 'stop' : (currentTab === 'dns' ? 'start_dns' : 'start_arp');
+        let actionStr = 'start_arp';
+        if (currentTab === 'dns') actionStr = 'start_dns';
+        if (currentTab === 'ssl') actionStr = 'start_sslstrip';
+
+        const action = isRunning ? 'stop' : actionStr;
 
         fetch('/action', {
             method: 'POST',
@@ -136,7 +162,7 @@
     }
 
     function getLogClass(message) {
-        if (message.includes("SUCCESS") || message.includes("RESOLVED")) return "success";
+        if (message.includes("SUCCESS") || message.includes("RESOLVED") || message.includes("ADDED")) return "success";
         if (message.includes("WARNING") || message.includes("unreachable")) return "warning";
         if (message.includes("ERROR") || message.includes("FATAL")) return "error";
         return "";
@@ -155,7 +181,11 @@
                 toggleBtn.innerText = "STOP ATTACK";
                 toggleBtn.className = "btn stop";
             } else {
-                toggleBtn.innerText = currentTab === 'dns' ? "LAUNCH DNS ATTACK" : "LAUNCH ARP ATTACK";
+                // Restore button text based on current tab selection
+                if(currentTab === 'dns') toggleBtn.innerText = "LAUNCH DNS ATTACK";
+                else if(currentTab === 'ssl') toggleBtn.innerText = "LAUNCH SSL STRIP";
+                else toggleBtn.innerText = "LAUNCH ARP ATTACK";
+                
                 toggleBtn.className = "btn start";
             }
 
