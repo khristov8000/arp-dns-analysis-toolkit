@@ -2,89 +2,172 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARP & DNS Toolkit</title>
+    <title>MITM Command Center</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- UPDATED STYLES --- */
+        
+        /* ARP Header */
+        .arp-header {
+            background: #131518;
+            border: 1px solid #2b2f36;
+            border-left: 3px solid #1f7dff;
+            padding: 15px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px; /* Added spacing between header and tabs */
+        }
+
+        .arp-status-badge {
+            background: #1f2229;
+            color: #ccc;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            border: 1px solid #333;
+        }
+
+        /* BOXY TABS DESIGN */
+        .tab-bar {
+            display: flex;
+            gap: 5px; /* Space between tabs */
+            background: transparent;
+            border: none;
+            margin-bottom: 0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: #0f1115;
+            border: 1px solid #2b2f36;
+            color: #666;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            border-radius: 6px 6px 0 0; /* Rounded top corners only */
+            position: relative;
+            top: 1px; /* Overlap border slightly */
+        }
+
+        .tab-btn.active {
+            color: #fff;
+            background: #15171c; /* Matches config panel */
+            border-color: #2b2f36;
+            border-bottom: 1px solid #15171c; /* Hide bottom border to merge */
+            border-top: 3px solid #1f7dff; /* Accent top */
+        }
+        
+        .tab-btn:hover:not(.active) { background: #1a1c21; color: #999; }
+
+        /* Config Panel Body */
+        .config-panel {
+            background: #15171c;
+            padding: 20px;
+            border: 1px solid #2b2f36;
+            border-radius: 0 0 6px 6px; /* Rounded bottom corners */
+            border-top: 1px solid #2b2f36; /* Ensure distinct separation from inactive tabs */
+        }
+
+        /* Utilities */
+        .hidden { display: none; }
+        .divider { border-top: 1px dashed #333; margin: 15px 0; padding-top: 15px; }
+        
+        /* SSL Info Box */
+        .info-text {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.5;
+            background: #0f1115;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #222;
+        }
+    </style>
 </head>
 
 <body>
 <div class="container">
-
     <header class="topbar">
-        <h1 class="title">ARP & DNS TOOLKIT <span class="version">PROFESSIONAL EDITION</span></h1>
+        <h1 class="title">MITM COMMAND CENTER</h1>
         <div class="status-display">
             <div id="status-dot" class="status-dot idle"></div>
-            <span id="status-text" class="status-text idle">IDLE</span>
+            <span id="status-text" class="status-text idle">SYSTEM READY</span>
         </div>
     </header>
 
     <div class="grid">
-        <div class="panel">
-            <h2>Attack Configuration</h2>
+        <div class="left-col">
             
-            <div class="tab-container">
-                <button class="tab-btn active" onclick="switchTab('arp')">ARP Mode</button>
-                <button class="tab-btn" onclick="switchTab('dns')">DNS Mode</button>
+            <div class="arp-header">
+                <div>
+                    <div style="color:#fff; font-weight:bold; font-size:15px;">Global Interception (ARP)</div>
+                    <div style="font-size:11px; color:#666;">Establishes Man-in-the-Middle position</div>
+                </div>
+                <div class="arp-status-badge">OFFLINE</div> 
+            </div>
+
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('dns')">DNS Mode</button>
                 <button class="tab-btn" onclick="switchTab('ssl')">SSL Strip</button>
             </div>
 
-            <div class="input-group">
-                <label>Target IP</label>
-                <input type="text" id="target_ip" value="{{ data.target }}">
-            </div>
-            <div class="input-group">
-                <label>Gateway IP</label>
-                <input type="text" id="gateway_ip" value="{{ data.gateway }}">
-            </div>
-            <div class="input-group">
-                <label>Network Interface</label>
-                <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
-            </div>
-
-            <div id="dns-settings" style="display: none; border-top: 1px dashed #333; padding-top: 15px; margin-top: 15px;">
-                <label style="color: #58a6ff; font-weight:bold; margin-bottom:10px; display:block;">DNS CONFIGURATION</label>
+            <div class="config-panel">
                 <div class="input-group">
-                    <label>Target Domain</label>
-                    <input type="text" id="dns_domain" placeholder="e.g. www.example.com">
+                    <label>Target IP</label>
+                    <input type="text" id="target_ip" value="192.168.1.20">
                 </div>
                 <div class="input-group">
-                    <label>Redirect IP</label>
-                    <input type="text" id="dns_ip" value="{{ data.gateway }}">
+                    <label>Gateway IP</label>
+                    <input type="text" id="gateway_ip" value="192.168.1.30">
                 </div>
-            </div>
-            
-            <div id="ssl-info" style="display: none; border-top: 1px dashed #333; padding-top: 15px; margin-top: 15px;">
-                <label style="color: #ff8c42; font-weight:bold; margin-bottom:10px; display:block;">SSL STRIP INFO</label>
-                <div style="font-size: 12px; color: #888; line-height: 1.4;">
-                    Attempts to downgrade HTTPS connections to HTTP.<br>
-                    <strong>Note:</strong> Will not work on HSTS sites (e.g. Google/FB).
+                <div class="input-group">
+                    <label>Network Interface</label>
+                    <input type="text" id="interface_name" value="eth0" class="disabled">
                 </div>
-            </div>
 
-            <div class="button-row">
-                <button id="toggle-btn" class="btn start" onclick="toggleAttack()">LAUNCH ARP ATTACK</button>
+                <div id="dns-content">
+                    <div class="divider"></div>
+                    <label style="color: #4cff79; margin-bottom: 8px; display:block;">DNS CONFIGURATION</label>
+                    <div class="input-group">
+                        <label>Target Domain</label>
+                        <input type="text" id="dns_domain" placeholder="e.g. www.example.com">
+                    </div>
+                    <div class="input-group">
+                        <label>Redirect IP</label>
+                        <input type="text" id="dns_ip" value="192.168.1.1">
+                    </div>
+                    <button id="launch-btn" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH DNS ATTACK</button>
+                </div>
+
+                <div id="ssl-content" class="hidden">
+                    <div class="divider"></div>
+                    <label style="color: #ff8c42; margin-bottom: 8px; display:block;">SSL STRIP INFO</label>
+                    <div class="info-text">
+                        Actively attempts to downgrade HTTPS connections to plain HTTP for interception.
+                        </div>
+                    <button id="ssl-btn" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH SSL STRIP</button>
+                </div>
+
             </div>
         </div>
 
         <div class="right-column">
             <div class="panel logs">
                 <div class="metrics">
-                    <div class="metric">
-                        <span class="metric-label">Packets</span>
-                        <span class="metric-value" id="packet_count">0</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Mode</span>
-                        <span class="metric-value" id="current_mode">NONE</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Target MAC</span>
-                        <span class="metric-value" id="target_mac">{{ data.target_mac }}</span>
-                    </div>
+                    <div class="metric"><span class="metric-label">Packets</span><span class="metric-value" id="packet_count">0</span></div>
+                    <div class="metric"><span class="metric-label">Mode</span><span class="metric-value" id="current_mode">NONE</span></div>
+                    <div class="metric"><span class="metric-label">Target MAC</span><span class="metric-value" id="target_mac">N/A</span></div>
                 </div>
                 <h2>Console Output</h2>
                 <div id="console-output" class="console">
-                    <div class="log-entry">Select a mode above and launch.</div>
+                    <div class="log-entry">[SYSTEM] Ready.</div>
                 </div>
             </div>
 
@@ -99,38 +182,27 @@
 </div>
 
 <script>
-    let currentTab = 'arp';
+    let currentTab = 'dns';
     let isRunning = false;
 
     function switchTab(mode) {
-        if(isRunning) return;
+        if(isRunning) return; 
         currentTab = mode;
-        const dnsSettings = document.getElementById('dns-settings');
-        const sslInfo = document.getElementById('ssl-info');
-        const toggleBtn = document.getElementById('toggle-btn');
+        
         const tabs = document.querySelectorAll('.tab-btn');
+        const dnsContent = document.getElementById('dns-content');
+        const sslContent = document.getElementById('ssl-content');
 
-        // Reset Tabs
-        tabs.forEach(t => t.classList.remove('active'));
-
-        // Logic for Modes
         if (mode === 'dns') {
-            dnsSettings.style.display = 'block';
-            sslInfo.style.display = 'none';
-            toggleBtn.innerText = "LAUNCH DNS ATTACK";
-            tabs[1].classList.add('active');
-        } 
-        else if (mode === 'ssl') {
-            dnsSettings.style.display = 'none';
-            sslInfo.style.display = 'block';
-            toggleBtn.innerText = "LAUNCH SSL STRIP";
-            tabs[2].classList.add('active');
-        } 
-        else {
-            dnsSettings.style.display = 'none';
-            sslInfo.style.display = 'none';
-            toggleBtn.innerText = "LAUNCH ARP ATTACK";
             tabs[0].classList.add('active');
+            tabs[1].classList.remove('active');
+            dnsContent.classList.remove('hidden');
+            sslContent.classList.add('hidden');
+        } else {
+            tabs[1].classList.add('active');
+            tabs[0].classList.remove('active');
+            sslContent.classList.remove('hidden');
+            dnsContent.classList.add('hidden');
         }
     }
 
@@ -140,25 +212,25 @@
         const iface = document.getElementById('interface_name').value;
         const dnsDomain = document.getElementById('dns_domain').value;
         const dnsIp = document.getElementById('dns_ip').value;
-        
-        let actionStr = 'start_arp';
-        if (currentTab === 'dns') actionStr = 'start_dns';
-        if (currentTab === 'ssl') actionStr = 'start_sslstrip';
 
-        const action = isRunning ? 'stop' : actionStr;
+        let actionStr = (currentTab === 'dns') ? 'start_dns' : 'start_sslstrip';
+        const finalAction = isRunning ? 'stop' : actionStr;
+
+        const inputs = document.querySelectorAll('input:not(#interface_name)');
+        inputs.forEach(i => i.disabled = !isRunning);
 
         fetch('/action', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ 
-                action: action, 
+                action: finalAction, 
                 target: target, 
                 gateway: gateway, 
                 interface: iface,
                 dns_domain: dnsDomain,
                 dns_ip: dnsIp
             })
-        }).then(() => updateDashboard());
+        }).then(() => setTimeout(updateDashboard, 500));
     }
 
     function getLogClass(message) {
@@ -171,22 +243,29 @@
     function updateDashboard() {
         fetch('/update').then(r => r.json()).then(data => {
             document.getElementById('packet_count').innerText = data.packets;
-            document.getElementById('target_mac').innerText = data.target_mac;
             document.getElementById('current_mode').innerText = data.mode;
+            document.getElementById('target_mac').innerText = data.target_mac;
 
-            const toggleBtn = document.getElementById('toggle-btn');
             isRunning = (data.state === "RUNNING");
             
+            const launchBtn = document.getElementById('launch-btn');
+            const sslBtn = document.getElementById('ssl-btn');
+            const activeBtn = (currentTab === 'dns') ? launchBtn : sslBtn;
+
             if (isRunning) {
-                toggleBtn.innerText = "STOP ATTACK";
-                toggleBtn.className = "btn stop";
+                activeBtn.innerText = "STOP ATTACK";
+                activeBtn.className = "btn stop";
+                document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
+                document.querySelector('.arp-status-badge').innerText = "ONLINE";
+                document.querySelector('.arp-status-badge').style.color = "#4cff79";
+                document.querySelector('.arp-status-badge').style.borderColor = "#4cff79";
             } else {
-                // Restore button text based on current tab selection
-                if(currentTab === 'dns') toggleBtn.innerText = "LAUNCH DNS ATTACK";
-                else if(currentTab === 'ssl') toggleBtn.innerText = "LAUNCH SSL STRIP";
-                else toggleBtn.innerText = "LAUNCH ARP ATTACK";
-                
-                toggleBtn.className = "btn start";
+                activeBtn.innerText = (currentTab === 'dns') ? "LAUNCH DNS ATTACK" : "LAUNCH SSL STRIP";
+                activeBtn.className = "btn start";
+                document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
+                document.querySelector('.arp-status-badge').innerText = "OFFLINE";
+                document.querySelector('.arp-status-badge').style.color = "#ccc";
+                document.querySelector('.arp-status-badge').style.borderColor = "#333";
             }
 
             const statusText = document.getElementById('status-text');
@@ -203,24 +282,24 @@
                 div.innerText = log;
                 consoleDiv.appendChild(div);
             });
-
+            
             const dataDiv = document.getElementById('data_output');
             dataDiv.innerHTML = "";
             if (data.intercepted_data.length > 0) {
                 data.intercepted_data.slice().reverse().forEach(item => {
+                    let color = "#ff8c42";
+                    let border = "3px solid #ff8c42";
+                    if (item.type === "ALERT") { color = "#ff4f4f"; border = "3px solid #ff4f4f"; }
+                    
                     const div = document.createElement('div');
                     div.className = "log-entry intercept-entry";
-                    let color = "#ff8c42";
-                    if (item.type === "ALERT") { color = "#ff4f4f"; div.style.borderLeft = "3px solid #ff4f4f"; }
-                    if (item.type === "HTML") { color = "#58a6ff"; div.style.borderLeft = "3px solid #58a6ff"; }
-
-                    // LINK TO VIEW CONTENT
+                    div.style.borderLeft = border;
                     div.innerHTML = `
                         <div style="font-size:11px; color:#555; display:flex; justify-content:space-between;">
                             <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
-                            <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; text-decoration:none; font-weight:bold;">[VIEW FULL]</a>
+                            <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; font-weight:bold; text-decoration:none;">VIEW</a>
                         </div>
-                        <div style="color:#e3e3e3; margin-top:2px; font-family:monospace;">${item.snippet}</div>
+                        <div style="color:#e3e3e3; margin-top:2px; font-family:monospace; word-break:break-all;">${item.snippet}</div>
                     `;
                     dataDiv.appendChild(div);
                 });

