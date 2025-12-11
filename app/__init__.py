@@ -91,5 +91,4 @@ def create_app():
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)})
 
-        
     return app

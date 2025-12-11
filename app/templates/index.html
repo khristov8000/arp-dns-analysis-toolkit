@@ -5,81 +5,6 @@
     <title>MITM Command Center</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        /* Existing styles... plus specific tweaks for 3 tabs */
-        .arp-header {
-            background: #131518;
-            border: 1px solid #2b2f36;
-            border-left: 3px solid #1f7dff;
-            padding: 15px;
-            border-radius: 6px 6px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .arp-status-badge {
-            background: #1f2229; color: #ccc; padding: 5px 10px;
-            border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #333;
-        }
-        .tab-bar { display: flex; gap: 5px; background: transparent; border: none; margin-bottom: 0; }
-        .tab-btn {
-            flex: 1; padding: 12px; background: #0f1115; border: 1px solid #2b2f36;
-            color: #666; font-weight: bold; font-size: 11px; cursor: pointer;
-            transition: 0.2s; text-transform: uppercase; border-radius: 6px 6px 0 0;
-            position: relative; top: 1px;
-        }
-        .tab-btn.active {
-            color: #fff; background: #15171c; border-color: #2b2f36;
-            border-bottom: 1px solid #15171c; border-top: 3px solid #1f7dff;
-        }
-        .tab-btn:hover:not(.active) { background: #1a1c21; color: #999; }
-        .config-panel {
-            background: #15171c; padding: 20px; border: 1px solid #2b2f36;
-            border-radius: 0 0 6px 6px; border-top: 1px solid #2b2f36;
-        }
-        .hidden { display: none; }
-        .divider { border-top: 1px dashed #333; margin: 15px 0; padding-top: 15px; }
-        .info-text {
-            font-size: 13px; color: #888; line-height: 1.5;
-            background: #0f1115; padding: 10px; border-radius: 4px; border: 1px solid #222;
-        }
-        /* Window Controls CSS */
-        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 10px; padding-bottom: 5px; }
-        .window-controls { display: flex; gap: 8px; }
-        .win-btn { background: none; border: none; color: #555; font-size: 18px; font-weight: bold; cursor: pointer; padding: 0 4px; outline: none; transition: color 0.2s; }
-        .win-btn:hover { color: #fff; }
-        .clear-btn:hover { color: #ff4f4f; }
-        .console { transition: all 0.3s ease; max-height: 200px; opacity: 1; overflow-y: auto; background: #0b0c0f; padding: 12px; border-radius: 6px; font-family: "JetBrains Mono", monospace; font-size: 13px; border: 1px solid #21242c; }
-        .console.collapsed { max-height: 0; opacity: 0; padding: 0; border: none; }
-        .log-entry { padding: 3px 0; border-bottom: 1px solid #15171c; }
-        .log-entry.success { color: #4cff79; } .log-entry.warning { color: #ffd86b; } .log-entry.error { color: #ff4f4f; }
-        .intercept-entry { border-left: 3px solid #ff8c42; padding-left: 8px; }
-        /* Layout */
-        body { margin: 0; font-family: "Inter", sans-serif; background: #0d0f12; color: #e3e3e3; height: 100vh; display: flex; justify-content: center; align-items: center; }
-        .container { width: 90%; max-width: 1100px; margin: auto; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #1f2229; margin-bottom: 25px; }
-        .title { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
-        .status-display { display: flex; align-items: center; gap: 10px; }
-        .status-dot { width: 14px; height: 14px; border-radius: 50%; background: #555; }
-        .status-text { font-weight: bold; font-size: 14px; color: #888; }
-        .status-text.running { color: #4cff79; } .status-dot.running { background: #4cff79; box-shadow: 0 0 10px #4cff79; }
-        .grid { display: grid; grid-template-columns: 350px auto; gap: 25px; }
-        .right-column { display: flex; flex-direction: column; gap: 25px; }
-        .panel { background: #15171c; padding: 20px; border-radius: 10px; border: 1px solid #1f2229; box-shadow: 0 0 15px rgba(0,0,0,0.4); }
-        .input-group { margin-bottom: 18px; } label { font-size: 12px; opacity: 0.7; display: block; margin-bottom: 5px; }
-        input[type="text"] { width: 100%; padding: 10px; background: #0f1115; border: 1px solid #2b2f36; border-radius: 6px; color: #e3e3e3; margin-top: 5px; box-sizing: border-box; }
-        .disabled { background: #131518; opacity: 0.6; cursor: not-allowed; }
-        .btn { width: 100%; padding: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: none; text-transform: uppercase; font-size: 13px; }
-        .start { background: #1f7dff; color: white; } .stop { background: #ff3b3b; color: white; } .btn:hover { opacity: 0.85; }
-        .metrics { display: flex; justify-content: space-between; margin-bottom: 15px; } .metric-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; } .metric-value { font-size: 18px; font-weight: bold; color: #fff; }
-        /* Modal */
-        .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; }
-        .modal-content { background-color: #15171c; padding: 20px; border: 1px solid #2b2f36; width: 400px; border-radius: 8px; color: #fff; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .close-btn:hover { color: #fff; }
-    </style>
 </head>
 
 <body>
@@ -114,21 +39,26 @@
                     <label>Network Interface</label>
                     <div style="display: flex; gap: 10px;">
                         <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
-                        <button id="scan-btn" class="btn" onclick="runNetworkScan()" style="width: 80px; padding: 0; font-size: 11px; background: #2b2f36; border: 1px solid #444; color: #fff;">SCAN</button>
+                        <button id="scan-btn" class="scan-btn" onclick="runNetworkScan()">SCAN</button>
                     </div>
                 </div>
 
-                <datalist id="scanned-hosts"></datalist>
+                <div class="input-group">
+                    <label>Target IP</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="target_ip" value="" placeholder="Target IP..." onfocus="showDropdown(this)" onblur="hideDropdown(this)">
+                        <div class="custom-dropdown" id="dropdown-target_ip"></div>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Gateway IP</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="gateway_ip" value="" placeholder="Gateway IP..." onfocus="showDropdown(this)" onblur="hideDropdown(this)">
+                        <div class="custom-dropdown" id="dropdown-gateway_ip"></div>
+                    </div>
+                </div>
 
                 <div id="dns-content">
-                    <div class="input-group">
-                        <label>Target IP (Victim)</label>
-                        <input type="text" id="target_dns" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
-                    </div>
-                    <div class="input-group">
-                        <label>Gateway IP (Router)</label>
-                        <input type="text" id="gateway_dns" value="192.168.1.1" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
-                    </div>
                     <div class="divider"></div>
                     <label style="color: #4cff79; margin-bottom: 8px; display:block;">DNS CONFIGURATION</label>
                     <div class="input-group">
@@ -137,20 +67,15 @@
                     </div>
                     <div class="input-group">
                         <label>Redirect IP (Fake Server)</label>
-                        <input type="text" id="dns_redirect" list="scanned-hosts" placeholder="Select Server IP from scan..." autocomplete="off">
+                        <div class="input-wrapper">
+                            <input type="text" id="dns_redirect" placeholder="Select Server IP..." autocomplete="off" onfocus="showDropdown(this)" onblur="hideDropdown(this)">
+                            <div class="custom-dropdown" id="dropdown-dns_redirect"></div>
+                        </div>
                     </div>
                     <button id="launch-btn-dns" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH DNS ATTACK</button>
                 </div>
 
                 <div id="ssl-content" class="hidden">
-                    <div class="input-group">
-                        <label>Target IP (Victim)</label>
-                        <input type="text" id="target_ssl" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
-                    </div>
-                    <div class="input-group">
-                        <label>Gateway IP (Router/Server)</label>
-                        <input type="text" id="gateway_ssl" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
-                    </div>
                     <div class="divider"></div>
                     <label style="color: #ff8c42; margin-bottom: 8px; display:block;">SSL STRIP INFO</label>
                     <div class="info-text">
@@ -162,14 +87,6 @@
                 </div>
 
                 <div id="silent-content" class="hidden">
-                    <div class="input-group">
-                        <label>Target IP (Victim)</label>
-                        <input type="text" id="target_silent" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
-                    </div>
-                    <div class="input-group">
-                        <label>Gateway IP (Router/Server)</label>
-                        <input type="text" id="gateway_silent" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
-                    </div>
                     <div class="divider"></div>
                     <label style="color: #aaa; margin-bottom: 8px; display:block;">PASSIVE MONITORING</label>
                     <div class="info-text" style="border-left: 3px solid #aaa;">
@@ -236,12 +153,11 @@
 <script>
     let currentTab = 'dns';
     let isRunning = false;
+    let scannedHosts = []; 
 
-    // --- SCANNER LOGIC ---
     function runNetworkScan() {
         const btn = document.getElementById('scan-btn');
         const iface = document.getElementById('interface_name').value;
-        const datalist = document.getElementById('scanned-hosts');
 
         btn.innerText = "...";
         btn.disabled = true;
@@ -259,37 +175,57 @@
             btn.style.cursor = "pointer";
 
             if(data.status === "success") {
-                datalist.innerHTML = ""; 
-                if (!data.hosts || data.hosts.length === 0) {
+                scannedHosts = data.hosts || [];
+                if (scannedHosts.length === 0) {
                     alert("No hosts found."); return;
                 }
-                data.hosts.forEach(host => {
-                    const option = document.createElement('option');
-                    const ip = host.ip ? host.ip : host; 
-                    const mac = host.mac ? host.mac : '';
-                    option.value = ip;
-                    if(mac) option.label = `MAC: ${mac}`; 
-                    datalist.appendChild(option);
-                });
-                flashInput('target_dns');
-                flashInput('gateway_dns');
-                flashInput('target_ssl');
-                flashInput('gateway_ssl');
-                flashInput('target_silent');
-                flashInput('gateway_silent');
-                console.log("Scan complete.");
+                flashInput('target_ip');
+                flashInput('gateway_ip');
+                flashInput('dns_redirect');
+                console.log("Scan complete. Hosts cached.");
             } else {
                 alert("Error: " + data.message);
             }
         });
     }
 
+    function showDropdown(inputElement) {
+        if(scannedHosts.length === 0) return;
+        const dropdownId = 'dropdown-' + inputElement.id;
+        const dropdown = document.getElementById(dropdownId);
+        if(!dropdown) return;
+
+        dropdown.innerHTML = '';
+        scannedHosts.forEach(host => {
+            const ip = host.ip ? host.ip : host;
+            const mac = host.mac ? host.mac : 'Unknown';
+            const div = document.createElement('div');
+            div.className = 'dropdown-item';
+            div.innerHTML = `<span>${ip}</span><span class="mac">${mac}</span>`;
+            div.onmousedown = function(e) {
+                e.preventDefault(); 
+                inputElement.value = ip;
+                dropdown.classList.remove('show');
+            };
+            dropdown.appendChild(div);
+        });
+        dropdown.classList.add('show');
+    }
+
+    function hideDropdown(inputElement) {
+        setTimeout(() => {
+            const dropdownId = 'dropdown-' + inputElement.id;
+            const dropdown = document.getElementById(dropdownId);
+            if(dropdown) dropdown.classList.remove('show');
+        }, 200);
+    }
+
     function flashInput(id) {
         const el = document.getElementById(id);
         if(el) {
-            const oldBorder = el.style.borderColor;
-            el.style.borderColor = "#4cff79";
-            setTimeout(() => el.style.borderColor = oldBorder, 600);
+            el.classList.remove('input-flash');
+            void el.offsetWidth;
+            el.classList.add('input-flash');
         }
     }
 
@@ -299,7 +235,6 @@
     function switchTab(mode) {
         if(isRunning) return; 
         currentTab = mode;
-        
         const tabs = document.querySelectorAll('.tab-btn');
         const dnsContent = document.getElementById('dns-content');
         const sslContent = document.getElementById('ssl-content');
@@ -324,25 +259,18 @@
 
     function toggleAttack() {
         const iface = document.getElementById('interface_name').value;
-        let target, gateway, dnsDomain, dnsIp, actionStr;
+        const target = document.getElementById('target_ip').value;
+        const gateway = document.getElementById('gateway_ip').value;
+        let dnsDomain = "", dnsIp = "", actionStr;
 
         if (currentTab === 'dns') {
             actionStr = 'start_dns';
-            target = document.getElementById('target_dns').value;
-            gateway = document.getElementById('gateway_dns').value;
             dnsDomain = document.getElementById('dns_domain').value;
             dnsIp = document.getElementById('dns_redirect').value; 
         } else if (currentTab === 'ssl') {
             actionStr = 'start_sslstrip';
-            target = document.getElementById('target_ssl').value;
-            gateway = document.getElementById('gateway_ssl').value;
-            dnsDomain = ""; dnsIp = "";
         } else {
-            // SILENT MODE LOGIC
             actionStr = 'start_silent';
-            target = document.getElementById('target_silent').value;
-            gateway = document.getElementById('gateway_silent').value;
-            dnsDomain = ""; dnsIp = "";
         }
 
         if(!target) { alert("Please select a Target IP."); return; }
@@ -373,7 +301,6 @@
             document.getElementById('target_mac').innerText = data.target_mac;
 
             isRunning = (data.state === "RUNNING");
-            
             const btnDns = document.getElementById('launch-btn-dns');
             const btnSsl = document.getElementById('launch-btn-ssl');
             const btnSilent = document.getElementById('launch-btn-silent');
