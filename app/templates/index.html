@@ -73,6 +73,12 @@
         .btn { width: 100%; padding: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: none; text-transform: uppercase; font-size: 13px; }
         .start { background: #1f7dff; color: white; } .stop { background: #ff3b3b; color: white; } .btn:hover { opacity: 0.85; }
         .metrics { display: flex; justify-content: space-between; margin-bottom: 15px; } .metric-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; } .metric-value { font-size: 18px; font-weight: bold; color: #fff; }
+        /* Modal */
+        .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; }
+        .modal-content { background-color: #15171c; padding: 20px; border: 1px solid #2b2f36; width: 400px; border-radius: 8px; color: #fff; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: #fff; }
     </style>
 </head>
 
@@ -108,10 +114,7 @@
                     <label>Network Interface</label>
                     <div style="display: flex; gap: 10px;">
                         <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
-                        <button id="scan-btn" class="btn" onclick="runNetworkScan()" 
-                                style="width: 80px; padding: 0; font-size: 11px; background: #2b2f36; border: 1px solid #444; color: #fff;">
-                            SCAN
-                        </button>
+                        <button id="scan-btn" class="btn" onclick="runNetworkScan()" style="width: 80px; padding: 0; font-size: 11px; background: #2b2f36; border: 1px solid #444; color: #fff;">SCAN</button>
                     </div>
                 </div>
 
@@ -126,10 +129,8 @@
                         <label>Gateway IP (Router)</label>
                         <input type="text" id="gateway_dns" value="192.168.1.1" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
                     </div>
-
                     <div class="divider"></div>
                     <label style="color: #4cff79; margin-bottom: 8px; display:block;">DNS CONFIGURATION</label>
-                    
                     <div class="input-group">
                         <label>Target Domain</label>
                         <input type="text" id="dns_domain" placeholder="e.g. www.example.com">
@@ -150,7 +151,6 @@
                         <label>Gateway IP (Router/Server)</label>
                         <input type="text" id="gateway_ssl" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
                     </div>
-
                     <div class="divider"></div>
                     <label style="color: #ff8c42; margin-bottom: 8px; display:block;">SSL STRIP INFO</label>
                     <div class="info-text">
@@ -162,6 +162,14 @@
                 </div>
 
                 <div id="silent-content" class="hidden">
+                    <div class="input-group">
+                        <label>Target IP (Victim)</label>
+                        <input type="text" id="target_silent" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label>Gateway IP (Router/Server)</label>
+                        <input type="text" id="gateway_silent" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
+                    </div>
                     <div class="divider"></div>
                     <label style="color: #aaa; margin-bottom: 8px; display:block;">PASSIVE MONITORING</label>
                     <div class="info-text" style="border-left: 3px solid #aaa;">
@@ -185,7 +193,6 @@
                     <div class="metric"><span class="metric-label">Mode</span><span class="metric-value" id="current_mode">NONE</span></div>
                     <div class="metric"><span class="metric-label">Target MAC</span><span class="metric-value" id="target_mac">N/A</span></div>
                 </div>
-
                 <div class="panel-header">
                     <h2>Console Output</h2>
                     <div class="window-controls">
@@ -252,31 +259,25 @@
             btn.style.cursor = "pointer";
 
             if(data.status === "success") {
-                datalist.innerHTML = ""; // Clear old list
-                
+                datalist.innerHTML = ""; 
                 if (!data.hosts || data.hosts.length === 0) {
-                    alert("No hosts found. Check interface.");
-                    return;
+                    alert("No hosts found."); return;
                 }
-
                 data.hosts.forEach(host => {
                     const option = document.createElement('option');
-                    // Handle data format safely
                     const ip = host.ip ? host.ip : host; 
                     const mac = host.mac ? host.mac : '';
-                    
                     option.value = ip;
                     if(mac) option.label = `MAC: ${mac}`; 
                     datalist.appendChild(option);
                 });
-
                 flashInput('target_dns');
                 flashInput('gateway_dns');
-                flashInput('dns_redirect');
                 flashInput('target_ssl');
                 flashInput('gateway_ssl');
-
-                console.log("Scan complete. Found:", data.hosts.length);
+                flashInput('target_silent');
+                flashInput('gateway_silent');
+                console.log("Scan complete.");
             } else {
                 alert("Error: " + data.message);
             }
@@ -292,23 +293,8 @@
         }
     }
 
-    function setIP(fieldId, ip) {
-        const field = document.getElementById(fieldId);
-        if(field) {
-            field.value = ip;
-            flashInput(fieldId);
-        }
-        closeModal();
-    }
-
-    function closeModal() {
-        document.getElementById('scan-modal').style.display = "none";
-    }
-
-    window.onclick = function(event) {
-        const modal = document.getElementById('scan-modal');
-        if (event.target == modal) closeModal();
-    }
+    function closeModal() { document.getElementById('scan-modal').style.display = "none"; }
+    window.onclick = function(event) { if (event.target == document.getElementById('scan-modal')) closeModal(); }
 
     function switchTab(mode) {
         if(isRunning) return; 
@@ -319,7 +305,6 @@
         const sslContent = document.getElementById('ssl-content');
         const silentContent = document.getElementById('silent-content');
 
-        // Reset all
         tabs.forEach(t => t.classList.remove('active'));
         dnsContent.classList.add('hidden');
         sslContent.classList.add('hidden');
@@ -339,8 +324,6 @@
 
     function toggleAttack() {
         const iface = document.getElementById('interface_name').value;
-        
-        // Grab Config based on Active Tab
         let target, gateway, dnsDomain, dnsIp, actionStr;
 
         if (currentTab === 'dns') {
@@ -348,30 +331,24 @@
             target = document.getElementById('target_dns').value;
             gateway = document.getElementById('gateway_dns').value;
             dnsDomain = document.getElementById('dns_domain').value;
-            
-            // --- THE CRITICAL FIX IS HERE ---
-            // The HTML ID is "dns_redirect", so we must read from "dns_redirect"
             dnsIp = document.getElementById('dns_redirect').value; 
-            // --------------------------------
-            
-        } else {
+        } else if (currentTab === 'ssl') {
             actionStr = 'start_sslstrip';
             target = document.getElementById('target_ssl').value;
             gateway = document.getElementById('gateway_ssl').value;
-            dnsDomain = "";
-            dnsIp = "";
+            dnsDomain = ""; dnsIp = "";
+        } else {
+            // SILENT MODE LOGIC
+            actionStr = 'start_silent';
+            target = document.getElementById('target_silent').value;
+            gateway = document.getElementById('gateway_silent').value;
+            dnsDomain = ""; dnsIp = "";
         }
 
-        // VALIDATION
         if(!target) { alert("Please select a Target IP."); return; }
         if(!gateway) { alert("Please select a Gateway IP."); return; }
-        if(currentTab === 'dns' && (!dnsDomain || !dnsIp)) {
-            alert("For DNS Spoofing, Domain and Redirect IP are required.");
-            return;
-        }
-
+        
         const finalAction = isRunning ? 'stop' : actionStr;
-
         const inputs = document.querySelectorAll('input:not(#interface_name)');
         inputs.forEach(i => i.disabled = !isRunning);
 
@@ -397,12 +374,10 @@
 
             isRunning = (data.state === "RUNNING");
             
-            // Manage Buttons Text/Color
             const btnDns = document.getElementById('launch-btn-dns');
             const btnSsl = document.getElementById('launch-btn-ssl');
             const btnSilent = document.getElementById('launch-btn-silent');
             
-            // Which button is visible?
             let activeBtn;
             if (currentTab === 'dns') activeBtn = btnDns;
             else if (currentTab === 'ssl') activeBtn = btnSsl;
@@ -416,16 +391,10 @@
                 document.querySelector('.arp-status-badge').style.color = "#4cff79";
                 document.querySelector('.arp-status-badge').style.borderColor = "#4cff79";
             } else {
-                // Restore defaults
-                btnDns.innerText = "LAUNCH DNS ATTACK";
-                btnDns.className = "btn start";
-                
-                btnSsl.innerText = "LAUNCH SSL STRIP";
-                btnSsl.className = "btn start";
-                
-                btnSilent.innerText = "START MONITOR";
-                btnSilent.className = "btn start";
-                btnSilent.style.background = "#555"; // Special color for silent
+                btnDns.innerText = "LAUNCH DNS ATTACK"; btnDns.className = "btn start";
+                btnSsl.innerText = "LAUNCH SSL STRIP"; btnSsl.className = "btn start";
+                btnSilent.innerText = "START MONITOR"; btnSilent.className = "btn start";
+                btnSilent.style.background = "#555"; 
 
                 document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
                 document.querySelector('.arp-status-badge').innerText = "OFFLINE";
@@ -439,7 +408,6 @@
             statusText.className = "status-text " + data.state.toLowerCase();
             statusDot.className = "status-dot " + data.state.toLowerCase();
 
-            // Logs Logic
             const consoleDiv = document.getElementById('console-output');
             consoleDiv.innerHTML = "";
             data.logs.slice().reverse().forEach(log => {
@@ -452,7 +420,6 @@
                 consoleDiv.appendChild(div);
             });
             
-            // Intercepts Logic
             const dataDiv = document.getElementById('data_output');
             dataDiv.innerHTML = "";
             if (data.intercepted_data.length > 0) {
