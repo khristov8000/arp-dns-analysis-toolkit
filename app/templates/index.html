@@ -165,14 +165,29 @@
                     <div class="metric"><span class="metric-label">Mode</span><span class="metric-value" id="current_mode">NONE</span></div>
                     <div class="metric"><span class="metric-label">Target MAC</span><span class="metric-value" id="target_mac">N/A</span></div>
                 </div>
-                <h2>Console Output</h2>
+
+                <div class="panel-header">
+                    <h2>Console Output</h2>
+                    <div class="window-controls">
+                        <button class="win-btn collapse-btn" onclick="toggleConsole('console-output', this)" title="Collapse">▼</button>
+                        <button class="win-btn clear-btn" onclick="clearConsole('console-output')" title="Clear Logs">×</button>
+                    </div>
+                </div>
+                
                 <div id="console-output" class="console">
                     <div class="log-entry">[SYSTEM] Ready.</div>
                 </div>
             </div>
 
             <div class="panel">
-                <h2 style="color: #ff8c42;">Sensitive Data</h2>
+                <div class="panel-header">
+                    <h2 style="color: #ff8c42;">Sensitive Data</h2>
+                    <div class="window-controls">
+                        <button class="win-btn collapse-btn" onclick="toggleConsole('data_output', this)" title="Collapse">▼</button>
+                        <button class="win-btn clear-btn" onclick="clearConsole('data_output')" title="Clear Logs">×</button>
+                    </div>
+                </div>
+
                 <div id="data_output" class="console data-intercepts-console">
                     <div class="log-entry" style="opacity: 0.5;">Waiting for traffic...</div>
                 </div>
@@ -307,6 +322,33 @@
                 dataDiv.innerHTML = '<div class="log-entry" style="opacity:0.5">Waiting for traffic...</div>';
             }
         });
+    }
+
+    function clearConsole(target) {
+        // Determine which action to send based on the target ID
+        const actionType = (target === 'console-output') ? 'clear_logs' : 'clear_data';
+
+        // 1. Clear the UI immediately (Visual feedback)
+        document.getElementById(target).innerHTML = '';
+
+        // 2. Tell the Backend to clear the memory
+        fetch('/action', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: actionType })
+        });
+    }
+
+    function toggleConsole(id, btn) {
+        const consoleDiv = document.getElementById(id);
+        const isCollapsed = consoleDiv.classList.toggle('collapsed');
+        
+        // Rotate the arrow button
+        if (isCollapsed) {
+            btn.style.transform = "rotate(-90deg)";
+        } else {
+            btn.style.transform = "rotate(0deg)";
+        }
     }
     setInterval(updateDashboard, 1000);
 </script>

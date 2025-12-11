@@ -238,3 +238,62 @@ input[type="text"] {
     border-left: 3px solid #ff8c42;
     padding-left: 8px;
 }
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #222;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+}
+
+.panel-header h2 {
+    margin: 0;
+    border: none; /* Remove old border since header handles it */
+    padding: 0;
+}
+
+.window-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.win-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.win-btn:hover {
+    background: none;
+    color: #fff;
+}
+
+/* Specific Red Hover for Clear Button */
+.clear-btn:hover {
+    background: none;
+    color: #ff4f4f;
+}
+
+/* Collapse Animation */
+.console {
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s;
+    max-height: 200px; /* Default height */
+    opacity: 1;
+}
+
+.console.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+}

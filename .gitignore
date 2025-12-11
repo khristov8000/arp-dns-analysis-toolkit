@@ -1,0 +1,19 @@
+# --- User Specific ---
+# Ignore the directory where intercepted HTML files are saved
+captured_pages/
+
+# --- Python Standard ---
+# Ignore compiled python files (the cache files you mentioned)
+__pycache__/
+*.py[cod]
+
+# --- Virtual Environments ---
+# Ignore the virtual environment folder containing libraries
+venv/
+env/
+.venv/
+
+# --- OS & IDE Clutter ---
+.DS_Store
+.vscode/
+.idea/
