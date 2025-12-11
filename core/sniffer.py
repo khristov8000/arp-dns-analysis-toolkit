@@ -3,16 +3,17 @@ import uuid
 import time
 from . import STATUS, STOP_EVENT, CAPTURE_DIR
 from .utils import log_msg
+from .utils import set_promiscuous_mode # Import the new function
 
 def packet_callback(packet):
     if STOP_EVENT.is_set(): return
     
+
     if packet.haslayer(scapy.Raw) and packet.haslayer(scapy.TCP):
         try:
             payload = packet[scapy.Raw].load.decode('utf-8', errors='ignore')
             
-            # --- FILTER FIX: Ignore SSL Strip Proxy Traffic ---
-            # If the source or destination port is our proxy port, ignore to avoid double logs
+            # Ignore own SSL Strip Proxy Traffic
             if packet[scapy.TCP].sport == 10000 or packet[scapy.TCP].dport == 10000:
                 return 
 
@@ -32,4 +33,20 @@ def packet_callback(packet):
         except: pass
 
 def start_sniffer():
-    scapy.sniff(iface=STATUS["interface"], store=0, prn=packet_callback)
+    interface = STATUS["interface"]
+    
+    # 1. Enable Promiscuous Mode
+    # NOTE: This should only be done if running in Silent Mode, 
+    # but it's often safer to run the sniffer in this mode anyway 
+    # to catch maximum traffic, regardless of the attack mode.
+    # We will assume it should run for all active modes too.
+    set_promiscuous_mode(interface, True)
+    
+    try:
+        scapy.sniff(iface=interface, store=0, prn=packet_callback, stop_filter=lambda p: STOP_EVENT.is_set())
+    except Exception as e:
+        log_msg(f"[!] Sniffer Error: {e}")
+    finally:
+        # 2. Disable Promiscuous Mode upon stop
+        set_promiscuous_mode(interface, False)
+        log_msg("[SYSTEM] Sniffer thread stopped.")

