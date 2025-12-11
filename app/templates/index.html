@@ -6,9 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- UPDATED STYLES --- */
-        
-        /* ARP Header */
+        /* Existing styles... plus specific tweaks for 3 tabs */
         .arp-header {
             background: #131518;
             border: 1px solid #2b2f36;
@@ -18,77 +16,63 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px; /* Added spacing between header and tabs */
+            margin-bottom: 10px;
         }
-
         .arp-status-badge {
-            background: #1f2229;
-            color: #ccc;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            border: 1px solid #333;
+            background: #1f2229; color: #ccc; padding: 5px 10px;
+            border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #333;
         }
-
-        /* BOXY TABS DESIGN */
-        .tab-bar {
-            display: flex;
-            gap: 5px; /* Space between tabs */
-            background: transparent;
-            border: none;
-            margin-bottom: 0;
-        }
-
+        .tab-bar { display: flex; gap: 5px; background: transparent; border: none; margin-bottom: 0; }
         .tab-btn {
-            flex: 1;
-            padding: 12px;
-            background: #0f1115;
-            border: 1px solid #2b2f36;
-            color: #666;
-            font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
-            transition: 0.2s;
-            text-transform: uppercase;
-            border-radius: 6px 6px 0 0; /* Rounded top corners only */
-            position: relative;
-            top: 1px; /* Overlap border slightly */
+            flex: 1; padding: 12px; background: #0f1115; border: 1px solid #2b2f36;
+            color: #666; font-weight: bold; font-size: 11px; cursor: pointer;
+            transition: 0.2s; text-transform: uppercase; border-radius: 6px 6px 0 0;
+            position: relative; top: 1px;
         }
-
         .tab-btn.active {
-            color: #fff;
-            background: #15171c; /* Matches config panel */
-            border-color: #2b2f36;
-            border-bottom: 1px solid #15171c; /* Hide bottom border to merge */
-            border-top: 3px solid #1f7dff; /* Accent top */
+            color: #fff; background: #15171c; border-color: #2b2f36;
+            border-bottom: 1px solid #15171c; border-top: 3px solid #1f7dff;
         }
-        
         .tab-btn:hover:not(.active) { background: #1a1c21; color: #999; }
-
-        /* Config Panel Body */
         .config-panel {
-            background: #15171c;
-            padding: 20px;
-            border: 1px solid #2b2f36;
-            border-radius: 0 0 6px 6px; /* Rounded bottom corners */
-            border-top: 1px solid #2b2f36; /* Ensure distinct separation from inactive tabs */
+            background: #15171c; padding: 20px; border: 1px solid #2b2f36;
+            border-radius: 0 0 6px 6px; border-top: 1px solid #2b2f36;
         }
-
-        /* Utilities */
         .hidden { display: none; }
         .divider { border-top: 1px dashed #333; margin: 15px 0; padding-top: 15px; }
-        
-        /* SSL Info Box */
         .info-text {
-            font-size: 13px;
-            color: #888;
-            line-height: 1.5;
-            background: #0f1115;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #222;
+            font-size: 13px; color: #888; line-height: 1.5;
+            background: #0f1115; padding: 10px; border-radius: 4px; border: 1px solid #222;
         }
+        /* Window Controls CSS */
+        .panel-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; margin-bottom: 10px; padding-bottom: 5px; }
+        .window-controls { display: flex; gap: 8px; }
+        .win-btn { background: none; border: none; color: #555; font-size: 18px; font-weight: bold; cursor: pointer; padding: 0 4px; outline: none; transition: color 0.2s; }
+        .win-btn:hover { color: #fff; }
+        .clear-btn:hover { color: #ff4f4f; }
+        .console { transition: all 0.3s ease; max-height: 200px; opacity: 1; overflow-y: auto; background: #0b0c0f; padding: 12px; border-radius: 6px; font-family: "JetBrains Mono", monospace; font-size: 13px; border: 1px solid #21242c; }
+        .console.collapsed { max-height: 0; opacity: 0; padding: 0; border: none; }
+        .log-entry { padding: 3px 0; border-bottom: 1px solid #15171c; }
+        .log-entry.success { color: #4cff79; } .log-entry.warning { color: #ffd86b; } .log-entry.error { color: #ff4f4f; }
+        .intercept-entry { border-left: 3px solid #ff8c42; padding-left: 8px; }
+        /* Layout */
+        body { margin: 0; font-family: "Inter", sans-serif; background: #0d0f12; color: #e3e3e3; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { width: 90%; max-width: 1100px; margin: auto; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #1f2229; margin-bottom: 25px; }
+        .title { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+        .status-display { display: flex; align-items: center; gap: 10px; }
+        .status-dot { width: 14px; height: 14px; border-radius: 50%; background: #555; }
+        .status-text { font-weight: bold; font-size: 14px; color: #888; }
+        .status-text.running { color: #4cff79; } .status-dot.running { background: #4cff79; box-shadow: 0 0 10px #4cff79; }
+        .grid { display: grid; grid-template-columns: 350px auto; gap: 25px; }
+        .right-column { display: flex; flex-direction: column; gap: 25px; }
+        .panel { background: #15171c; padding: 20px; border-radius: 10px; border: 1px solid #1f2229; box-shadow: 0 0 15px rgba(0,0,0,0.4); }
+        .input-group { margin-bottom: 18px; } label { font-size: 12px; opacity: 0.7; display: block; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 10px; background: #0f1115; border: 1px solid #2b2f36; border-radius: 6px; color: #e3e3e3; margin-top: 5px; box-sizing: border-box; }
+        .disabled { background: #131518; opacity: 0.6; cursor: not-allowed; }
+        .btn { width: 100%; padding: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: none; text-transform: uppercase; font-size: 13px; }
+        .start { background: #1f7dff; color: white; } .stop { background: #ff3b3b; color: white; } .btn:hover { opacity: 0.85; }
+        .metrics { display: flex; justify-content: space-between; margin-bottom: 15px; } .metric-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; } .metric-value { font-size: 18px; font-weight: bold; color: #fff; }
     </style>
 </head>
 
@@ -107,7 +91,7 @@
             
             <div class="arp-header">
                 <div>
-                    <div style="color:#fff; font-weight:bold; font-size:15px;">Global Interception (ARP)</div>
+                    <div style="color:#fff; font-weight:bold; font-size:15px;">Global Interception</div>
                     <div style="font-size:11px; color:#666;">Establishes Man-in-the-Middle position</div>
                 </div>
                 <div class="arp-status-badge">OFFLINE</div> 
@@ -116,6 +100,7 @@
             <div class="tab-bar">
                 <button class="tab-btn active" onclick="switchTab('dns')">DNS Mode</button>
                 <button class="tab-btn" onclick="switchTab('ssl')">SSL Strip</button>
+                <button class="tab-btn" onclick="switchTab('silent')">Silent</button>
             </div>
 
             <div class="config-panel">
@@ -143,7 +128,7 @@
                         <label>Redirect IP</label>
                         <input type="text" id="dns_ip" value="192.168.1.1">
                     </div>
-                    <button id="launch-btn" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH DNS ATTACK</button>
+                    <button id="launch-btn-dns" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH DNS ATTACK</button>
                 </div>
 
                 <div id="ssl-content" class="hidden">
@@ -151,8 +136,24 @@
                     <label style="color: #ff8c42; margin-bottom: 8px; display:block;">SSL STRIP INFO</label>
                     <div class="info-text">
                         Actively attempts to downgrade HTTPS connections to plain HTTP for interception.
-                        </div>
-                    <button id="ssl-btn" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH SSL STRIP</button>
+                        <br><br>
+                        <strong style="color:#ff4f4f">Warning:</strong> Noisy attack.
+                    </div>
+                    <button id="launch-btn-ssl" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH SSL STRIP</button>
+                </div>
+
+                <div id="silent-content" class="hidden">
+                    <div class="divider"></div>
+                    <label style="color: #aaa; margin-bottom: 8px; display:block;">PASSIVE MONITORING</label>
+                    <div class="info-text" style="border-left: 3px solid #aaa;">
+                        Runs in <strong>Stealth Mode</strong>.
+                        <ul style="padding-left: 20px; margin: 5px 0;">
+                            <li>No ARP Spoofing</li>
+                            <li>No DNS Injection</li>
+                            <li>Listens to Broadcasts Only</li>
+                        </ul>
+                    </div>
+                    <button id="launch-btn-silent" class="btn start" onclick="toggleAttack()" style="margin-top: 25px; background: #555;">START MONITOR</button>
                 </div>
 
             </div>
@@ -207,17 +208,23 @@
         const tabs = document.querySelectorAll('.tab-btn');
         const dnsContent = document.getElementById('dns-content');
         const sslContent = document.getElementById('ssl-content');
+        const silentContent = document.getElementById('silent-content');
+
+        // Reset all
+        tabs.forEach(t => t.classList.remove('active'));
+        dnsContent.classList.add('hidden');
+        sslContent.classList.add('hidden');
+        silentContent.classList.add('hidden');
 
         if (mode === 'dns') {
             tabs[0].classList.add('active');
-            tabs[1].classList.remove('active');
             dnsContent.classList.remove('hidden');
-            sslContent.classList.add('hidden');
-        } else {
+        } else if (mode === 'ssl') {
             tabs[1].classList.add('active');
-            tabs[0].classList.remove('active');
             sslContent.classList.remove('hidden');
-            dnsContent.classList.add('hidden');
+        } else {
+            tabs[2].classList.add('active');
+            silentContent.classList.remove('hidden');
         }
     }
 
@@ -228,7 +235,12 @@
         const dnsDomain = document.getElementById('dns_domain').value;
         const dnsIp = document.getElementById('dns_ip').value;
 
-        let actionStr = (currentTab === 'dns') ? 'start_dns' : 'start_sslstrip';
+        // Determine action based on Tab
+        let actionStr = '';
+        if (currentTab === 'dns') actionStr = 'start_dns';
+        else if (currentTab === 'ssl') actionStr = 'start_sslstrip';
+        else actionStr = 'start_silent';
+
         const finalAction = isRunning ? 'stop' : actionStr;
 
         const inputs = document.querySelectorAll('input:not(#interface_name)');
@@ -248,13 +260,6 @@
         }).then(() => setTimeout(updateDashboard, 500));
     }
 
-    function getLogClass(message) {
-        if (message.includes("SUCCESS") || message.includes("RESOLVED") || message.includes("ADDED")) return "success";
-        if (message.includes("WARNING") || message.includes("unreachable")) return "warning";
-        if (message.includes("ERROR") || message.includes("FATAL")) return "error";
-        return "";
-    }
-
     function updateDashboard() {
         fetch('/update').then(r => r.json()).then(data => {
             document.getElementById('packet_count').innerText = data.packets;
@@ -263,9 +268,16 @@
 
             isRunning = (data.state === "RUNNING");
             
-            const launchBtn = document.getElementById('launch-btn');
-            const sslBtn = document.getElementById('ssl-btn');
-            const activeBtn = (currentTab === 'dns') ? launchBtn : sslBtn;
+            // Manage Buttons Text/Color
+            const btnDns = document.getElementById('launch-btn-dns');
+            const btnSsl = document.getElementById('launch-btn-ssl');
+            const btnSilent = document.getElementById('launch-btn-silent');
+            
+            // Which button is visible?
+            let activeBtn;
+            if (currentTab === 'dns') activeBtn = btnDns;
+            else if (currentTab === 'ssl') activeBtn = btnSsl;
+            else activeBtn = btnSilent;
 
             if (isRunning) {
                 activeBtn.innerText = "STOP ATTACK";
@@ -275,8 +287,17 @@
                 document.querySelector('.arp-status-badge').style.color = "#4cff79";
                 document.querySelector('.arp-status-badge').style.borderColor = "#4cff79";
             } else {
-                activeBtn.innerText = (currentTab === 'dns') ? "LAUNCH DNS ATTACK" : "LAUNCH SSL STRIP";
-                activeBtn.className = "btn start";
+                // Restore defaults
+                btnDns.innerText = "LAUNCH DNS ATTACK";
+                btnDns.className = "btn start";
+                
+                btnSsl.innerText = "LAUNCH SSL STRIP";
+                btnSsl.className = "btn start";
+                
+                btnSilent.innerText = "START MONITOR";
+                btnSilent.className = "btn start";
+                btnSilent.style.background = "#555"; // Special color for silent
+
                 document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
                 document.querySelector('.arp-status-badge').innerText = "OFFLINE";
                 document.querySelector('.arp-status-badge').style.color = "#ccc";
@@ -289,26 +310,28 @@
             statusText.className = "status-text " + data.state.toLowerCase();
             statusDot.className = "status-dot " + data.state.toLowerCase();
 
+            // Logs Logic
             const consoleDiv = document.getElementById('console-output');
             consoleDiv.innerHTML = "";
             data.logs.slice().reverse().forEach(log => {
                 const div = document.createElement('div');
-                div.className = "log-entry " + getLogClass(log);
+                div.className = "log-entry";
+                if (log.includes("SUCCESS") || log.includes("RESOLVED")) div.classList.add("success");
+                if (log.includes("WARNING") || log.includes("unreachable")) div.classList.add("warning");
+                if (log.includes("ERROR") || log.includes("FATAL")) div.classList.add("error");
                 div.innerText = log;
                 consoleDiv.appendChild(div);
             });
             
+            // Intercepts Logic
             const dataDiv = document.getElementById('data_output');
             dataDiv.innerHTML = "";
             if (data.intercepted_data.length > 0) {
                 data.intercepted_data.slice().reverse().forEach(item => {
-                    let color = "#ff8c42";
-                    let border = "3px solid #ff8c42";
-                    if (item.type === "ALERT") { color = "#ff4f4f"; border = "3px solid #ff4f4f"; }
-                    
+                    let color = item.type === "ALERT" ? "#ff4f4f" : "#ff8c42";
                     const div = document.createElement('div');
                     div.className = "log-entry intercept-entry";
-                    div.style.borderLeft = border;
+                    div.style.borderLeft = `3px solid ${color}`;
                     div.innerHTML = `
                         <div style="font-size:11px; color:#555; display:flex; justify-content:space-between;">
                             <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
@@ -325,16 +348,10 @@
     }
 
     function clearConsole(target) {
-        // Determine which action to send based on the target ID
         const actionType = (target === 'console-output') ? 'clear_logs' : 'clear_data';
-
-        // 1. Clear the UI immediately (Visual feedback)
         document.getElementById(target).innerHTML = '';
-
-        // 2. Tell the Backend to clear the memory
         fetch('/action', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ action: actionType })
         });
     }
@@ -342,14 +359,9 @@
     function toggleConsole(id, btn) {
         const consoleDiv = document.getElementById(id);
         const isCollapsed = consoleDiv.classList.toggle('collapsed');
-        
-        // Rotate the arrow button
-        if (isCollapsed) {
-            btn.style.transform = "rotate(-90deg)";
-        } else {
-            btn.style.transform = "rotate(0deg)";
-        }
+        btn.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
     }
+    
     setInterval(updateDashboard, 1000);
 </script>
 </body>
