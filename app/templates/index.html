@@ -6,89 +6,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* --- UPDATED STYLES --- */
-        
-        /* ARP Header */
-        .arp-header {
-            background: #131518;
-            border: 1px solid #2b2f36;
-            border-left: 3px solid #1f7dff;
-            padding: 15px;
-            border-radius: 6px 6px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px; /* Added spacing between header and tabs */
-        }
-
-        .arp-status-badge {
-            background: #1f2229;
-            color: #ccc;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            border: 1px solid #333;
-        }
-
-        /* BOXY TABS DESIGN */
-        .tab-bar {
-            display: flex;
-            gap: 5px; /* Space between tabs */
-            background: transparent;
-            border: none;
-            margin-bottom: 0;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px;
-            background: #0f1115;
-            border: 1px solid #2b2f36;
-            color: #666;
-            font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
-            transition: 0.2s;
-            text-transform: uppercase;
-            border-radius: 6px 6px 0 0; /* Rounded top corners only */
-            position: relative;
-            top: 1px; /* Overlap border slightly */
-        }
-
-        .tab-btn.active {
-            color: #fff;
-            background: #15171c; /* Matches config panel */
-            border-color: #2b2f36;
-            border-bottom: 1px solid #15171c; /* Hide bottom border to merge */
-            border-top: 3px solid #1f7dff; /* Accent top */
-        }
-        
+        /* [KEEPING YOUR EXISTING CSS STYLES] */
+        .arp-header { background: #131518; border: 1px solid #2b2f36; border-left: 3px solid #1f7dff; padding: 15px; border-radius: 6px 6px 0 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .arp-status-badge { background: #1f2229; color: #ccc; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #333; }
+        .tab-bar { display: flex; gap: 5px; background: transparent; border: none; margin-bottom: 0; }
+        .tab-btn { flex: 1; padding: 12px; background: #0f1115; border: 1px solid #2b2f36; color: #666; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.2s; text-transform: uppercase; border-radius: 6px 6px 0 0; position: relative; top: 1px; }
+        .tab-btn.active { color: #fff; background: #15171c; border-color: #2b2f36; border-bottom: 1px solid #15171c; border-top: 3px solid #1f7dff; }
         .tab-btn:hover:not(.active) { background: #1a1c21; color: #999; }
-
-        /* Config Panel Body */
-        .config-panel {
-            background: #15171c;
-            padding: 20px;
-            border: 1px solid #2b2f36;
-            border-radius: 0 0 6px 6px; /* Rounded bottom corners */
-            border-top: 1px solid #2b2f36; /* Ensure distinct separation from inactive tabs */
-        }
-
-        /* Utilities */
+        .config-panel { background: #15171c; padding: 20px; border: 1px solid #2b2f36; border-radius: 0 0 6px 6px; border-top: 1px solid #2b2f36; }
         .hidden { display: none; }
         .divider { border-top: 1px dashed #333; margin: 15px 0; padding-top: 15px; }
-        
-        /* SSL Info Box */
-        .info-text {
-            font-size: 13px;
-            color: #888;
-            line-height: 1.5;
-            background: #0f1115;
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #222;
-        }
+        .info-text { font-size: 13px; color: #888; line-height: 1.5; background: #0f1115; padding: 10px; border-radius: 4px; border: 1px solid #222; }
     </style>
 </head>
 
@@ -120,38 +48,57 @@
 
             <div class="config-panel">
                 <div class="input-group">
-                    <label>Target IP</label>
-                    <input type="text" id="target_ip" value="192.168.1.20">
-                </div>
-                <div class="input-group">
-                    <label>Gateway IP</label>
-                    <input type="text" id="gateway_ip" value="192.168.1.30">
-                </div>
-                <div class="input-group">
                     <label>Network Interface</label>
-                    <input type="text" id="interface_name" value="eth0" class="disabled">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
+                        <button id="scan-btn" class="btn" onclick="runNetworkScan()" 
+                                style="width: 80px; padding: 0; font-size: 11px; background: #2b2f36; border: 1px solid #444; color: #fff;">
+                            SCAN
+                        </button>
+                    </div>
                 </div>
 
+                <datalist id="scanned-hosts"></datalist>
+
                 <div id="dns-content">
+                    <div class="input-group">
+                        <label>Target IP (Victim)</label>
+                        <input type="text" id="target_dns" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label>Gateway IP (Router)</label>
+                        <input type="text" id="gateway_dns" value="192.168.1.1" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
+                    </div>
+
                     <div class="divider"></div>
                     <label style="color: #4cff79; margin-bottom: 8px; display:block;">DNS CONFIGURATION</label>
+                    
                     <div class="input-group">
                         <label>Target Domain</label>
                         <input type="text" id="dns_domain" placeholder="e.g. www.example.com">
                     </div>
                     <div class="input-group">
-                        <label>Redirect IP</label>
-                        <input type="text" id="dns_ip" value="192.168.1.1">
+                        <label>Redirect IP (Fake Server)</label>
+                        <input type="text" id="dns_redirect" list="scanned-hosts" placeholder="Select Server IP from scan..." autocomplete="off">
                     </div>
                     <button id="launch-btn" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH DNS ATTACK</button>
                 </div>
 
                 <div id="ssl-content" class="hidden">
+                    <div class="input-group">
+                        <label>Target IP (Victim)</label>
+                        <input type="text" id="target_ssl" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label>Gateway IP (Router/Server)</label>
+                        <input type="text" id="gateway_ssl" list="scanned-hosts" placeholder="Select or Type IP..." autocomplete="off">
+                    </div>
+
                     <div class="divider"></div>
                     <label style="color: #ff8c42; margin-bottom: 8px; display:block;">SSL STRIP INFO</label>
                     <div class="info-text">
                         Actively attempts to downgrade HTTPS connections to plain HTTP for interception.
-                        </div>
+                    </div>
                     <button id="ssl-btn" class="btn start" onclick="toggleAttack()" style="margin-top: 25px;">LAUNCH SSL STRIP</button>
                 </div>
 
@@ -173,9 +120,8 @@
                         <button class="win-btn clear-btn" onclick="clearConsole('console-output')" title="Clear Logs">×</button>
                     </div>
                 </div>
-                
                 <div id="console-output" class="console">
-                    <div class="log-entry">[SYSTEM] Ready.</div>
+                    <div class="log-entry">[SYSTEM] Ready. Scan network to begin.</div>
                 </div>
             </div>
 
@@ -187,7 +133,6 @@
                         <button class="win-btn clear-btn" onclick="clearConsole('data_output')" title="Clear Logs">×</button>
                     </div>
                 </div>
-
                 <div id="data_output" class="console data-intercepts-console">
                     <div class="log-entry" style="opacity: 0.5;">Waiting for traffic...</div>
                 </div>
@@ -196,9 +141,101 @@
     </div>
 </div>
 
+<div id="scan-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Network Scan Results</h3>
+            <span class="close-btn" onclick="closeModal()">×</span>
+        </div>
+        <div id="scan-results" class="scan-list">
+            <div style="padding:20px; text-align:center; color:#888;">Scanning...</div>
+        </div>
+    </div>
+</div>
+
 <script>
     let currentTab = 'dns';
     let isRunning = false;
+
+    // --- SCANNER LOGIC ---
+    function runNetworkScan() {
+        const btn = document.getElementById('scan-btn');
+        const iface = document.getElementById('interface_name').value;
+        const datalist = document.getElementById('scanned-hosts');
+
+        btn.innerText = "...";
+        btn.disabled = true;
+        btn.style.cursor = "wait";
+
+        fetch('/scan', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ interface: iface })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.innerText = "SCAN";
+            btn.disabled = false;
+            btn.style.cursor = "pointer";
+
+            if(data.status === "success") {
+                datalist.innerHTML = ""; // Clear old list
+                
+                if (!data.hosts || data.hosts.length === 0) {
+                    alert("No hosts found. Check interface.");
+                    return;
+                }
+
+                data.hosts.forEach(host => {
+                    const option = document.createElement('option');
+                    // Handle data format safely
+                    const ip = host.ip ? host.ip : host; 
+                    const mac = host.mac ? host.mac : '';
+                    
+                    option.value = ip;
+                    if(mac) option.label = `MAC: ${mac}`; 
+                    datalist.appendChild(option);
+                });
+
+                flashInput('target_dns');
+                flashInput('gateway_dns');
+                flashInput('dns_redirect');
+                flashInput('target_ssl');
+                flashInput('gateway_ssl');
+
+                console.log("Scan complete. Found:", data.hosts.length);
+            } else {
+                alert("Error: " + data.message);
+            }
+        });
+    }
+
+    function flashInput(id) {
+        const el = document.getElementById(id);
+        if(el) {
+            const oldBorder = el.style.borderColor;
+            el.style.borderColor = "#4cff79";
+            setTimeout(() => el.style.borderColor = oldBorder, 600);
+        }
+    }
+
+    function setIP(fieldId, ip) {
+        const field = document.getElementById(fieldId);
+        if(field) {
+            field.value = ip;
+            flashInput(fieldId);
+        }
+        closeModal();
+    }
+
+    function closeModal() {
+        document.getElementById('scan-modal').style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('scan-modal');
+        if (event.target == modal) closeModal();
+    }
 
     function switchTab(mode) {
         if(isRunning) return; 
@@ -222,13 +259,38 @@
     }
 
     function toggleAttack() {
-        const target = document.getElementById('target_ip').value;
-        const gateway = document.getElementById('gateway_ip').value;
         const iface = document.getElementById('interface_name').value;
-        const dnsDomain = document.getElementById('dns_domain').value;
-        const dnsIp = document.getElementById('dns_ip').value;
+        
+        // Grab Config based on Active Tab
+        let target, gateway, dnsDomain, dnsIp, actionStr;
 
-        let actionStr = (currentTab === 'dns') ? 'start_dns' : 'start_sslstrip';
+        if (currentTab === 'dns') {
+            actionStr = 'start_dns';
+            target = document.getElementById('target_dns').value;
+            gateway = document.getElementById('gateway_dns').value;
+            dnsDomain = document.getElementById('dns_domain').value;
+            
+            // --- THE CRITICAL FIX IS HERE ---
+            // The HTML ID is "dns_redirect", so we must read from "dns_redirect"
+            dnsIp = document.getElementById('dns_redirect').value; 
+            // --------------------------------
+            
+        } else {
+            actionStr = 'start_sslstrip';
+            target = document.getElementById('target_ssl').value;
+            gateway = document.getElementById('gateway_ssl').value;
+            dnsDomain = "";
+            dnsIp = "";
+        }
+
+        // VALIDATION
+        if(!target) { alert("Please select a Target IP."); return; }
+        if(!gateway) { alert("Please select a Gateway IP."); return; }
+        if(currentTab === 'dns' && (!dnsDomain || !dnsIp)) {
+            alert("For DNS Spoofing, Domain and Redirect IP are required.");
+            return;
+        }
+
         const finalAction = isRunning ? 'stop' : actionStr;
 
         const inputs = document.querySelectorAll('input:not(#interface_name)');
@@ -325,13 +387,8 @@
     }
 
     function clearConsole(target) {
-        // Determine which action to send based on the target ID
         const actionType = (target === 'console-output') ? 'clear_logs' : 'clear_data';
-
-        // 1. Clear the UI immediately (Visual feedback)
         document.getElementById(target).innerHTML = '';
-
-        // 2. Tell the Backend to clear the memory
         fetch('/action', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -342,8 +399,6 @@
     function toggleConsole(id, btn) {
         const consoleDiv = document.getElementById(id);
         const isCollapsed = consoleDiv.classList.toggle('collapsed');
-        
-        // Rotate the arrow button
         if (isCollapsed) {
             btn.style.transform = "rotate(-90deg)";
         } else {

@@ -6,6 +6,7 @@ from core.arp import run_attack_loop
 from core.ssl_strip import run_ssl_strip
 from core.dns import start_dns_spoofing 
 from core.sniffer import start_sniffer
+from core.scanner import scan_network  
 
 def create_app():
     app = Flask(__name__)
@@ -81,5 +82,16 @@ def create_app():
                 content = f.read()
             return Response(content, mimetype='text/plain') 
         except: return "File not found."
+
+    @app.route('/scan', methods=['POST'])
+    def scan_route():
+        interface = request.json.get('interface', 'eth0')
+        try:
+            # Run the scan
+            active_hosts = scan_network(interface)
+            return jsonify({"status": "success", "hosts": active_hosts})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)})
+
         
     return app

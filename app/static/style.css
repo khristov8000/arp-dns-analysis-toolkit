@@ -250,7 +250,7 @@ input[type="text"] {
 
 .panel-header h2 {
     margin: 0;
-    border: none; /* Remove old border since header handles it */
+    border: none;
     padding: 0;
 }
 
@@ -277,7 +277,6 @@ input[type="text"] {
     color: #fff;
 }
 
-/* Specific Red Hover for Clear Button */
 .clear-btn:hover {
     background: none;
     color: #ff4f4f;
@@ -286,7 +285,7 @@ input[type="text"] {
 /* Collapse Animation */
 .console {
     transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s;
-    max-height: 200px; /* Default height */
+    max-height: 200px; 
     opacity: 1;
 }
 
