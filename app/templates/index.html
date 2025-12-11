@@ -25,7 +25,12 @@
                     <div style="color:#fff; font-weight:bold; font-size:15px;">Global Interception</div>
                     <div style="font-size:11px; color:#666;">Establishes Man-in-the-Middle position</div>
                 </div>
-                <div class="arp-status-badge">OFFLINE</div> 
+                
+                <div>
+                    <button class="export-btn" onclick="window.location.href='/export'">
+                        <span class="export-icon">↓</span> EXPORT
+                    </button>
+                </div>
             </div>
 
             <div class="tab-bar">
@@ -314,9 +319,7 @@
                 activeBtn.innerText = "STOP ATTACK";
                 activeBtn.className = "btn stop";
                 document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
-                document.querySelector('.arp-status-badge').innerText = "ONLINE";
-                document.querySelector('.arp-status-badge').style.color = "#4cff79";
-                document.querySelector('.arp-status-badge').style.borderColor = "#4cff79";
+                // Badge Logic Removed
             } else {
                 btnDns.innerText = "LAUNCH DNS ATTACK"; btnDns.className = "btn start";
                 btnSsl.innerText = "LAUNCH SSL STRIP"; btnSsl.className = "btn start";
@@ -324,9 +327,7 @@
                 btnSilent.style.background = "#555"; 
 
                 document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
-                document.querySelector('.arp-status-badge').innerText = "OFFLINE";
-                document.querySelector('.arp-status-badge').style.color = "#ccc";
-                document.querySelector('.arp-status-badge').style.borderColor = "#333";
+                // Badge Logic Removed
             }
 
             const statusText = document.getElementById('status-text');

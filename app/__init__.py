@@ -6,6 +6,11 @@ from core.ssl_strip import run_ssl_strip
 from core.dns import start_dns_spoofing 
 from core.sniffer import start_sniffer
 from core.scanner import scan_network  
+import csv
+import io
+import zipfile
+import os      
+from flask import send_file
 
 def create_app():
     app = Flask(__name__)
@@ -90,5 +95,54 @@ def create_app():
             return jsonify({"status": "success", "hosts": active_hosts})
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)})
+
+    @app.route('/export')
+    def export_data():
+        # Create an in-memory ZIP buffer
+        memory_file = io.BytesIO()
+        
+        with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+            
+            # --- 1. GENERATE CSV REPORT (Sensitive Data) ---
+            si = io.StringIO()
+            cw = csv.writer(si)
+            cw.writerow(['Timestamp', 'Source IP', 'Destination', 'Type', 'Content Snippet', 'Full Packet ID'])
+            
+            for item in STATUS["intercepted_data"]:
+                cw.writerow([
+                    item.get('time', ''),
+                    item.get('src', ''),
+                    item.get('dst', ''),
+                    item.get('type', ''),
+                    item.get('snippet', ''),
+                    item.get('id', '')
+                ])
+            
+            # Write CSV string to the ZIP file
+            zf.writestr('intercept_report.csv', si.getvalue())
+            
+            # --- 2. GENERATE SYSTEM LOGS (Console Output) ---
+            # Join all log lines into a single text block
+            logs_content = "\n".join(STATUS["logs"])
+            zf.writestr('console_logs.txt', logs_content)
+            
+            # --- 3. INCLUDE CAPTURED HTML FILES ---
+            # Walk through the CAPTURE_DIR and add every file found
+            if os.path.exists(CAPTURE_DIR):
+                for root, dirs, files in os.walk(CAPTURE_DIR):
+                    for file in files:
+                        abs_path = os.path.join(root, file)
+                        # arcname defines where it sits inside the zip (e.g. raw_captures/uuid.html)
+                        zf.write(abs_path, arcname=os.path.join('raw_captures', file))
+
+        # Reset buffer position to start
+        memory_file.seek(0)
+        
+        return send_file(
+            memory_file, 
+            mimetype="application/zip", 
+            as_attachment=True, 
+            download_name="mitm_log.zip"
+        )
 
     return app

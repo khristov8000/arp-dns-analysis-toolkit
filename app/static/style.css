@@ -21,7 +21,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 20px;
+    padding-top: 10px;
     border-bottom: 1px solid #1f2229;
     margin-bottom: 25px;
 }
@@ -341,3 +341,31 @@ input[type="text"] {
 }
 .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
 .close-btn:hover { color: #fff; }
+
+.export-btn {
+    background: #2b2f36;
+    border: 1px solid #444;
+    color: #e3e3e3;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.export-btn:hover {
+    background: #363b44;
+    color: #fff;
+    border-color: #555;
+}
+
+.export-icon {
+    font-weight: bold;
+    font-size: 13px;
+    color: #1f7dff;
+}
