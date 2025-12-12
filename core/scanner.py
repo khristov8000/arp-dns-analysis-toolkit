@@ -40,13 +40,12 @@ def scan_network(interface):
     # Extract IPs and MACs
     hosts = []
     for sent, received in result:
-        # --- THE FIX IS HERE ---
         # We must return a Dictionary, not just the IP string
         hosts.append({
             "ip": received.psrc,
             "mac": received.hwsrc,
             "vendor": "Unknown"
         })
-        # -----------------------
+       
         
     return hosts

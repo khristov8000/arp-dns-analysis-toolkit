@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- LOCAL STORAGE (Simplified for Global Inputs) ---
+// LOCAL STORAGE (Simplified for Global Inputs) 
 function saveState() {
     const getVal = (id) => {
         const el = document.getElementById(id);
@@ -74,7 +74,7 @@ function loadState() {
     }
 }
 
-// --- CORE FUNCTIONS ---
+//CORE FUNCTIONS
 
 function switchTab(mode, shouldSave = true) {
     currentTab = mode;
@@ -151,7 +151,6 @@ function runNetworkScan() {
 function toggleAttack() {
     const iface = document.getElementById('interface_name').value;
     
-    // --- KEY FIX: READ FROM GLOBAL INPUTS ---
     const target = document.getElementById('target_ip').value;
     const gateway = document.getElementById('gateway_ip').value;
     
@@ -188,7 +187,7 @@ function toggleAttack() {
     }).then(() => setTimeout(updateDashboard, 500));
 }
 
-// --- UI HELPERS ---
+// UI HELPERS 
 function showDropdown(inputElement) {
     const dropdownId = 'dropdown-' + inputElement.id;
     const dropdown = document.getElementById(dropdownId);
@@ -222,7 +221,6 @@ function showDropdown(inputElement) {
         divider.style.height = '0';
         dropdown.appendChild(divider);
         
-        // Add 192.168.1.1 option
         const div = document.createElement('div');
         div.className = 'dropdown-item';
         div.innerHTML = `<span>192.168.1.1</span><span class="mac"></span>`;

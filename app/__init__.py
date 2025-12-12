@@ -40,8 +40,7 @@ def create_app():
             STATUS["interface"] = req.get('interface')
             STATUS["dns_domain"] = req.get('dns_domain')
             STATUS["dns_ip"] = req.get('dns_ip')
-            
-            # --- NEW: SAVE ACTIVE TAB STATE ---
+        
             # This allows the frontend to know which tab to highlight on refresh
             if act == 'start_dns': STATUS["active_tab"] = 'dns'
             elif act == 'start_sslstrip': STATUS["active_tab"] = 'ssl'
@@ -52,7 +51,7 @@ def create_app():
                 threads['sniffer'] = threading.Thread(target=start_sniffer, daemon=True)
                 threads['sniffer'].start()
 
-            # --- MODE SELECTION ---
+            # MODE SELECTION
             passive_mode = False
 
             if act == 'start_silent':
@@ -107,7 +106,7 @@ def create_app():
         
         with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
             
-            # --- 1. GENERATE CSV FROM PERSISTENT HISTORY ---
+            # GENERATE CSV FROM PERSISTENT HISTORY
             si = io.StringIO()
             cw = csv.writer(si)
             cw.writerow(['Timestamp', 'Source IP', 'Destination', 'Type', 'Content Snippet', 'Full Packet ID'])
@@ -124,12 +123,12 @@ def create_app():
                 ])
             zf.writestr('intercept_report.csv', si.getvalue())
             
-            # --- 2. GENERATE LOGS FROM PERSISTENT HISTORY ---
+            # GENERATE LOGS FROM PERSISTENT HISTORY 
             # USE "all_logs" HERE
             logs_content = "\n".join(STATUS["all_logs"])
             zf.writestr('console_logs.txt', logs_content)
             
-            # --- 3. INCLUDE CAPTURED FILES ---
+            # INCLUDE CAPTURED FILES
             if os.path.exists(CAPTURE_DIR):
                 for root, dirs, files in os.walk(CAPTURE_DIR):
                     for file in files:
