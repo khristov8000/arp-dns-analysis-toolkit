@@ -23,11 +23,11 @@ body {
     align-items: center;
     padding-top: 10px;
     border-bottom: 1px solid #1f2229;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
 .title {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: 1px;
 }
