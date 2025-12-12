@@ -6,13 +6,21 @@ import shutil
 STATUS = {
     "state": "IDLE",
     "mode": "NONE",
+    "active_tab": "dns",
     "target": "192.168.1.20",
     "gateway": "192.168.1.1", 
     "interface": "eth0",
     "packets": 0,
     "target_mac": "N/A",
+    
+    # --- VIEW BUFFERS (Cleared by button) ---
     "logs": ["[SYSTEM] Ready."],
     "intercepted_data": [],
+    
+    # --- HISTORY BUFFERS (Permanent for Export) ---
+    "all_logs": ["[SYSTEM] Ready."], 
+    "all_intercepted_data": [],
+    
     "dns_domain": "",
     "dns_ip": ""
 }
@@ -21,9 +29,8 @@ STOP_EVENT = threading.Event()
 SSL_STRIP_PORT = 10000 
 CAPTURE_DIR = "captured_pages"
 
-# --- CLEANUP AT STARTUP ---
+# Clean up captures on restart
 if os.path.exists(CAPTURE_DIR):
-    # Remove all files in the directory to start fresh
     for filename in os.listdir(CAPTURE_DIR):
         file_path = os.path.join(CAPTURE_DIR, filename)
         try:

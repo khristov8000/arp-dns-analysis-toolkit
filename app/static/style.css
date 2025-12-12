@@ -276,7 +276,7 @@ input[type="text"] {
 
 /* ======= METRICS & CONSOLE ======= */
 .metrics { display: flex; justify-content: space-between; margin-bottom: 15px; }
-.metric-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; }
+.metric-label { font-size: 12px; opacity: 0.7; text-transform: uppercase; padding-right: 5px; }
 .metric-value { font-size: 18px; font-weight: bold; color: #fff; }
 
 .panel-header {
