@@ -202,5 +202,5 @@
 }
 
 .warning-text {
-    color: var(--error-red);
+    color: var(--alert-orange);
 }
