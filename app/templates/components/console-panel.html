@@ -1,0 +1,24 @@
+<div class="panel logs">
+    <div class="metrics">
+        <div class="metric">
+            <span class="metric-label">Packets</span>
+            <span class="metric-value" id="packet_count">0</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Mode</span>
+            <span class="metric-value" id="current_mode">NONE</span>
+        </div>
+        <div class="metric">
+            <span class="metric-label">Target MAC</span>
+            <span class="metric-value" id="target_mac">N/A</span>
+        </div>
+    </div>
+    <div class="panel-header">
+        <h2>Console Output</h2>
+        <div class="window-controls">
+            <button class="win-btn collapse-btn" onclick="toggleConsole('console-output', this)" title="Collapse">▼</button>
+            <button class="win-btn clear-btn" onclick="clearConsole('console-output')" title="Clear Logs">×</button>
+        </div>
+    </div>
+    <div id="console-output" class="console"></div>
+</div>

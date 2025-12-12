@@ -1,0 +1,208 @@
+/* ======= PANEL HEADERS ======= */
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #222;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+}
+
+.panel-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+    font-size: 18px;
+    color: #ccc;
+}
+
+.data-panel-title {
+    color: var(--alert-orange);
+}
+
+/* ======= WINDOW CONTROLS ======= */
+
+.window-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.win-btn {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.2s;
+}
+
+.win-btn:hover {
+    color: #fff;
+}
+
+.clear-btn:hover {
+    color: var(--error-red);
+}
+
+.collapse-btn {
+    transition: transform 0.2s;
+}
+
+/* ======= METRICS ======= */
+
+.metrics {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.metric {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+}
+
+.metric-label {
+    font-size: 12px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    padding-right: 0;
+}
+
+.metric-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+}
+
+/* ======= CONSOLE ======= */
+
+.console {
+    background: #0b0c0f;
+    padding: 12px;
+    height: 200px;
+    overflow-y: auto;
+    border-radius: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    border: 1px solid #21242c;
+    transition: all 0.3s ease;
+    opacity: 1;
+}
+
+.console.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    border: none;
+    overflow: hidden;
+}
+
+.data-intercepts-console {
+    height: 200px;
+    max-height: none;
+}
+
+/* Log Entries */
+.log-entry {
+    padding: 3px 0;
+    border-bottom: 1px solid #15171c;
+}
+
+.log-entry.success {
+    color: var(--success-green);
+}
+
+.log-entry.warning {
+    color: var(--warning-yellow);
+}
+
+.log-entry.error {
+    color: var(--error-red);
+}
+
+.intercept-entry {
+    border-left: 3px solid var(--alert-orange);
+    padding-left: 8px;
+    margin-bottom: 5px;
+}
+
+.placeholder-entry {
+    opacity: 0.5;
+}
+
+/* ======= MODAL ======= */
+
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: var(--bg-panel);
+    padding: 20px;
+    border: 1px solid var(--border-light);
+    width: 400px;
+    border-radius: 8px;
+    color: #fff;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.close-btn {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.scan-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scan-item {
+    padding: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.scan-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary-blue);
+}

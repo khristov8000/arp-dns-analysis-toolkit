@@ -1,0 +1,77 @@
+/* ======= GLOBAL STYLES ======= */
+body {
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    background: #0d0f12;
+    color: #e3e3e3;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 90%;
+    max-width: 1100px;
+    margin: auto;
+}
+
+/* ======= COLOR PALETTE ======= */
+:root {
+    --primary-blue: #1f7dff;
+    --success-green: #4cff79;
+    --warning-yellow: #ffd86b;
+    --error-red: #ff4f4f;
+    --alert-orange: #ff8c42;
+    --bg-dark: #0d0f12;
+    --bg-panel: #15171c;
+    --bg-input: #0f1115;
+    --bg-hover: #1a1c21;
+    --border-light: #2b2f36;
+    --border-dark: #1f2229;
+    --text-primary: #e3e3e3;
+    --text-secondary: #888;
+    --text-muted: #666;
+}
+
+/* ======= TYPOGRAPHY ======= */
+label {
+    font-size: 12px;
+    opacity: 0.7;
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* ======= FORM ELEMENTS ======= */
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    color: var(--text-primary);
+    margin-top: 5px;
+    box-sizing: border-box;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+}
+
+/* ======= UTILITY CLASSES ======= */
+.disabled {
+    background: #131518;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none;
+}
+
+.divider {
+    border-top: 1px dashed #333;
+    margin: 15px 0;
+    padding-top: 15px;
+}

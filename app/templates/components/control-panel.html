@@ -1,0 +1,50 @@
+<div class="arp-header">
+    <div>
+        <div class="arp-title">Global Interception</div>
+        <div class="arp-subtitle">Establishes Man-in-the-Middle position</div>
+    </div>
+    
+    <div>
+        <button class="export-btn" onclick="window.location.href='/export'">
+            <span class="export-icon">↓</span> EXPORT
+        </button>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <button class="tab-btn" onclick="switchTab('dns')">DNS Mode</button>
+    <button class="tab-btn" onclick="switchTab('ssl')">SSL Strip</button>
+    <button class="tab-btn" onclick="switchTab('silent')">Silent</button>
+</div>
+
+<div class="config-panel">
+    <div class="input-group">
+        <label>Network Interface</label>
+        <div class="interface-group">
+            <input type="text" id="interface_name" value="{{ data.interface }}" class="disabled">
+            <button id="scan-btn" class="scan-btn" onclick="runNetworkScan()">SCAN</button>
+        </div>
+    </div>
+
+    <datalist id="scanned-hosts"></datalist>
+
+    <div class="input-group">
+        <label>Target IP</label>
+        <div class="input-wrapper">
+            <input type="text" id="target_ip" placeholder="Target IP..." onfocus="showDropdown(this)" onblur="hideDropdown(this)">
+            <div class="custom-dropdown" id="dropdown-target_ip"></div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label>Gateway IP</label>
+        <div class="input-wrapper">
+            <input type="text" id="gateway_ip" placeholder="Gateway IP..." onfocus="showDropdown(this)" onblur="hideDropdown(this)">
+            <div class="custom-dropdown" id="dropdown-gateway_ip"></div>
+        </div>
+    </div>
+
+    {% include 'components/dns-section.html' %}
+    {% include 'components/ssl-section.html' %}
+    {% include 'components/silent-section.html' %}
+</div>

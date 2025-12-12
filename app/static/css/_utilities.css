@@ -1,0 +1,186 @@
+/* ======= STATUS INDICATORS ======= */
+
+.status-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #555;
+    transition: all 0.3s ease;
+}
+
+.status-text {
+    font-weight: bold;
+    font-size: 14px;
+    color: #888;
+    transition: color 0.3s ease;
+}
+
+.status-text.running {
+    color: var(--success-green);
+}
+
+.status-text.idle {
+    color: var(--text-secondary);
+}
+
+.status-dot.running {
+    background: var(--success-green);
+    box-shadow: 0 0 10px var(--success-green);
+}
+
+.status-dot.idle {
+    background: #555;
+    box-shadow: none;
+}
+
+/* ======= HEADER ======= */
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-bottom: 1px solid var(--border-dark);
+    margin-bottom: 20px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+/* ======= ANIMATIONS ======= */
+
+@keyframes subtlePulse {
+    0% {
+        border-color: var(--border-light);
+        box-shadow: none;
+    }
+    50% {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 15px rgba(31, 125, 255, 0.3);
+    }
+    100% {
+        border-color: var(--border-light);
+        box-shadow: none;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.input-flash {
+    animation: subtlePulse 1.5s ease-in-out;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-in;
+}
+
+/* ======= SCROLLBAR ======= */
+
+.console::-webkit-scrollbar {
+    width: 6px;
+}
+
+.console::-webkit-scrollbar-track {
+    background: #0b0c0f;
+    border-radius: 3px;
+}
+
+.console::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+
+.console::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* ======= RESPONSIVE SPACING ======= */
+
+.gap-sm {
+    gap: 8px;
+}
+
+.gap-md {
+    gap: 16px;
+}
+
+.gap-lg {
+    gap: 24px;
+}
+
+.p-sm {
+    padding: 8px;
+}
+
+.p-md {
+    padding: 16px;
+}
+
+.p-lg {
+    padding: 24px;
+}
+
+.m-0 {
+    margin: 0;
+}
+
+/* ======= TEXT UTILITIES ======= */
+
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    opacity: 0.5;
+}
+
+.text-uppercase {
+    text-transform: uppercase;
+}
+
+.font-mono {
+    font-family: "JetBrains Mono", monospace;
+}
+
+.font-bold {
+    font-weight: bold;
+}
+
+.no-wrap {
+    white-space: nowrap;
+}
+
+.break-word {
+    word-break: break-word;
+}

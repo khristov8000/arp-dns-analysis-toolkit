@@ -1,0 +1,107 @@
+/* ======= LAYOUT & STRUCTURE ======= */
+
+/* Grid Layout */
+.grid {
+    display: grid;
+    grid-template-columns: 350px auto;
+    gap: 25px;
+}
+
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Panels & Cards */
+.panel {
+    background: var(--bg-panel);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border-dark);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.panel.logs {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Control Panel */
+.config-panel {
+    background: var(--bg-panel);
+    padding: 20px;
+    border: 1px solid var(--border-light);
+    border-radius: 0 0 6px 6px;
+    border-top: 1px solid var(--border-light);
+}
+
+.input-group {
+    margin-bottom: 18px;
+}
+
+/* Interface Group */
+.interface-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* Header Panel */
+.arp-header {
+    background: #131518;
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--primary-blue);
+    padding: 15px;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.arp-status-badge {
+    background: var(--border-dark);
+    color: #ccc;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    border: 1px solid #333;
+}
+
+.arp-title {
+    color: #fff;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.arp-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Info Text */
+.info-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    background: var(--bg-input);
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #222;
+}
+
+.silent-info {
+    border-left: 3px solid var(--text-muted);
+}
+
+.stealth-features {
+    padding-left: 20px;
+    margin: 5px 0;
+}

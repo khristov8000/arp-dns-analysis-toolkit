@@ -1,0 +1,17 @@
+/* ======= MODULAR CSS ARCHITECTURE ======= */
+/* 
+ * Main stylesheet that imports all modular CSS files
+ * 
+ * Organization:
+ * - _globals.css    → Base styles, colors, typography, form elements
+ * - _layout.css     → Grid, panels, containers, structural layouts
+ * - _components.css → Buttons, tabs, inputs, dropdowns, interactive elements
+ * - _panels.css     → Panels, modals, console, headers, specific sections
+ * - _utilities.css  → Animations, utilities, status, responsive helpers
+ */
+
+@import url('./_globals.css');
+@import url('./_layout.css');
+@import url('./_components.css');
+@import url('./_panels.css');
+@import url('./_utilities.css');
