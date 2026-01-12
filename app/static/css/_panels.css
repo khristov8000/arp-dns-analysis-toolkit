@@ -84,7 +84,7 @@
 .console {
     background: #0b0c0f;
     padding: 12px;
-    height: 200px;
+    height: 180px;
     overflow-y: auto;
     border-radius: 6px;
     font-family: "JetBrains Mono", monospace;
@@ -103,7 +103,7 @@
 }
 
 .data-intercepts-console {
-    height: 200px;
+    height: 220px;
     max-height: none;
 }
 

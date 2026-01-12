@@ -75,7 +75,6 @@ function loadState() {
 }
 
 //CORE FUNCTIONS
-
 function switchTab(mode, shouldSave = true) {
     currentTab = mode;
     
@@ -333,25 +332,41 @@ function updateDashboard() {
         }
         
         // Intercepts
+        // Intercepts
         const dataDiv = document.getElementById('data_output');
-        dataDiv.innerHTML = "";
-        if (data.intercepted_data.length > 0) {
-            data.intercepted_data.slice().reverse().forEach(item => {
-                let color = item.type === "ALERT" ? "#ff4f4f" : "#ff8c42";
-                const div = document.createElement('div');
-                div.className = "log-entry intercept-entry";
-                div.style.borderLeft = `3px solid ${color}`;
-                div.innerHTML = `
-                    <div style="font-size:11px; color:#555; display:flex; justify-content:space-between;">
-                        <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
-                        <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; font-weight:bold; text-decoration:none;">VIEW</a>
-                    </div>
-                    <div style="color:#e3e3e3; margin-top:2px; font-family:monospace; word-break:break-all;">${item.snippet}</div>
-                `;
-                dataDiv.appendChild(div);
-            });
-        } else {
-            dataDiv.innerHTML = '<div class="log-entry" style="opacity:0.5">Waiting for traffic...</div>';
+        if (dataDiv) {
+            dataDiv.innerHTML = "";
+            if (data.intercepted_data.length > 0) {
+                data.intercepted_data.slice().reverse().forEach(item => {
+                    // Determine Color based on Type
+                    let color = "#ff8c42"; // Default Orange
+                    if (item.type === "ALERT") color = "#ff4f4f"; // Red for Creds
+                    if (item.type === "WARNING") color = "#aaa";  // Gray for HTML/Noise
+                    if (item.type === "INFO") color = "#4cff79";  // Green for Server Responses
+
+                    // Default title if missing (backward compatibility)
+                    const displayTitle = item.title || "RAW DATA";
+
+                    const div = document.createElement('div');
+                    div.className = "log-entry intercept-entry";
+                    div.style.borderLeft = `3px solid ${color}`;
+                    div.innerHTML = `
+                        <div style="font-size:11px; color:#555; display:flex; justify-content:space-between; margin-bottom: 2px;">
+                            <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
+                            <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; font-weight:bold; text-decoration:none;">VIEW FULL</a>
+                        </div>
+                        
+                        <div style="color:${color}; font-weight:bold; font-size:12px; margin-bottom:2px;">
+                            [${displayTitle}]
+                        </div>
+
+                        <div style="color:#e3e3e3; font-family:monospace; word-break:break-all; font-size: 11px; white-space: pre-wrap;">${item.snippet}</div>
+                    `;
+                    dataDiv.appendChild(div);
+                });
+            } else {
+                dataDiv.innerHTML = '<div class="log-entry placeholder-entry" style="opacity:0.5">Waiting for traffic...</div>';
+            }
         }
     });
 }
