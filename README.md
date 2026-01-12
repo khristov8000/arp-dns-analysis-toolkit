@@ -112,6 +112,11 @@ A comprehensive Python/Flask-based Man-in-the-Middle toolkit for network securit
 - **Display:** Dropdown menus auto-populated with discovered IPs and MAC addresses
 - **Hardcoded Gateway:** 192.168.1.1 available as quick-select in DNS mode
 
+#### Multi-Target Capabilities
+- **Concurrent Poisoning:** Attack multiple victim machines simultaneously within the same session.
+- **Dynamic Targeting:** Add or remove target IP addresses on the fly using the `+` and `-` controls.
+- **Smart Resolution:** Automatically resolves MAC addresses for all entered targets before launching the attack.
+
 #### Real-Time Dashboard
 - **Metrics:** Live packet count, current attack mode, target MAC address
 - **Console Output:** Logs all system events and attack operations
@@ -135,6 +140,11 @@ A comprehensive Python/Flask-based Man-in-the-Middle toolkit for network securit
   - Left panel: Configuration and attack controls
   - Right panel: Real-time console and data capture display
   - Collapsible sections for better space management
+
+- **Dynamic Input Fields:**
+  - **Target Management:** Intelligent input rows that allow users to stack multiple target IPs.
+  - **Auto-Complete:** Dropdown menus integrate with scan results for quick target selection.
+  - **Visual Feedback:** Status indicators (grey/green/red) update in real-time for all active targets.
 
 ### Dependencies
 - **scapy** - Packet crafting and network manipulation
@@ -322,12 +332,13 @@ pip3 install scapy flask netifaces python-iptables requests
 
 *Perform these steps on the **Kali Dashboard**.*
 
- **DNS Attack Configuration**
+**DNS Attack Configuration**
 
 1. **Set Attack Parameters:**
-   * **TARGET IP:** 192.168.1.20 (The Victim)
+   * **TARGET IP(s):** - Enter the first victim IP (e.g., 192.168.1.20).
+     - *Optional:* Click the `+` button to add more target fields and enter additional victim IPs (e.g., 192.168.1.25).
    * **GATEWAY IP:** 192.168.1.1 (or 192.168.1.30 - the Server)
-   * **TARGET DOMAIN:** www.example.com (or any domain to redirect)
+   * **TARGET DOMAIN:** www.example.com
    * **REDIRECT IP:** 192.168.1.30 (Your fake server)
 
 2. **Click:** `LAUNCH DNS ATTACK`
@@ -335,7 +346,8 @@ pip3 install scapy flask netifaces python-iptables requests
 **SSL Strip Attack Configuration**
 
 1. **Set Attack Parameters:**
-   * **TARGET IP:** 192.168.1.20 (The Victim)
+   * **TARGET IP(s):** - Enter the primary victim IP.
+     - Use the `+` button to add secondary victims if needed.
    * **GATEWAY IP:** 192.168.1.30 (The Gateway / Fake server)
 
 2. **Ensure Server is Running HTTPS:**
@@ -345,9 +357,9 @@ pip3 install scapy flask netifaces python-iptables requests
 
 **Silent Mode Configuration**
 
-1. **Set Monitoring Targets (optional):**
-   For targeted monitoring you can select the victim and gateway. Defaults for the lab:
-   * **TARGET IP:** 192.168.1.20 (The Victim)
+1. **Set Monitoring Targets:**
+   Silent mode can monitor broadcast traffic or specific targets.
+   * **TARGET IP(s):** Enter one or multiple IPs to specifically monitor their traffic.
    * **GATEWAY IP:** 192.168.1.30 (The Gateway)
 
 2. **Click:** `START MONITOR`

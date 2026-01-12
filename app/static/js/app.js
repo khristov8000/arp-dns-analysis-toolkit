@@ -137,11 +137,6 @@ function removeTargetField(btn) {
     btn.parentElement.remove();
 }
 
-function removeTargetField(btn) {
-    // Remove the parent row
-    btn.parentElement.remove();
-}
-
 // --- ADD THIS AT THE VERY TOP OF APP.JS WITH OTHER GLOBALS ---
 let isProcessing = false; 
 // ------------------------------------------------------------
@@ -219,7 +214,7 @@ function toggleAttack() {
         // Wait 1.5 seconds, then update dashboard and RELEASE LOCK
         setTimeout(() => {
             updateDashboard();
-            isProcessing = false; // <--- RELEASE LOCK HERE
+            isProcessing = false;
         }, 1500);
     })
     .catch(err => {
@@ -232,7 +227,6 @@ function toggleAttack() {
     });
 }
 
-// --- UPDATE: saveState / loadState (Optional but recommended) ---
 // Update loadState to populate multiple fields if they existed
 function loadState() {
     const saved = localStorage.getItem('mitm_config');
@@ -394,8 +388,8 @@ function updateDashboard() {
             if(activeBtn) { 
                 activeBtn.innerText = "STOP ATTACK"; 
                 activeBtn.className = "btn stop"; 
-                activeBtn.disabled = false;         // <--- FIX ADDED HERE
-                activeBtn.style.cursor = "pointer"; // <--- FIX ADDED HERE
+                activeBtn.disabled = false;         
+                activeBtn.style.cursor = "pointer"; 
             }
             document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
         } else {
