@@ -259,92 +259,94 @@ window.onclick = function(event) {
     if (event.target == document.getElementById('scan-modal')) closeModal(); 
 }
 
+// ... (Keep existing variable declarations: currentTab, isRunning, etc.) ...
+
+// ... (Keep existing loadState, saveState, switchTab, runNetworkScan, toggleAttack functions) ...
+
 function updateDashboard() {
     fetch('/update').then(r => r.json()).then(data => {
-        document.getElementById('packet_count').innerText = data.packets;
-        document.getElementById('current_mode').innerText = data.mode;
-        document.getElementById('target_mac').innerText = data.target_mac;
+        // Metrics
+        const pktCount = document.getElementById('packet_count');
+        const modeLabel = document.getElementById('current_mode');
+        const macLabel = document.getElementById('target_mac');
+        
+        if(pktCount) pktCount.innerText = data.packets;
+        if(modeLabel) modeLabel.innerText = data.mode;
+        if(macLabel) macLabel.innerText = data.target_mac;
 
+        // State Sync
         const wasRunning = isRunning;
         isRunning = (data.state === "RUNNING");
-        
-        // Sync with server if just loaded
-        if (isRunning && !wasRunning) {
-            if (data.active_tab) switchTab(data.active_tab, false);
-        }
+        if (isRunning && !wasRunning && data.active_tab) switchTab(data.active_tab, false);
 
+        // Buttons (Visual Update)
         const btnDns = document.getElementById('launch-btn-dns');
         const btnSsl = document.getElementById('launch-btn-ssl');
         const btnSilent = document.getElementById('launch-btn-silent');
-        
-        let activeBtn;
-        if (currentTab === 'dns') activeBtn = btnDns;
-        else if (currentTab === 'ssl') activeBtn = btnSsl;
-        else activeBtn = btnSilent;
+        let activeBtn = (currentTab === 'dns') ? btnDns : (currentTab === 'ssl') ? btnSsl : btnSilent;
 
         if (isRunning) {
-            if(activeBtn) {
-                activeBtn.innerText = "STOP ATTACK";
-                activeBtn.className = "btn stop";
-            }
+            if(activeBtn) { activeBtn.innerText = "STOP ATTACK"; activeBtn.className = "btn stop"; }
             document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
         } else {
             if(btnDns) { btnDns.innerText = "LAUNCH DNS ATTACK"; btnDns.className = "btn start"; }
             if(btnSsl) { btnSsl.innerText = "LAUNCH SSL STRIP"; btnSsl.className = "btn start"; }
-            if(btnSilent) { 
-                btnSilent.innerText = "START MONITOR"; 
-                btnSilent.className = "btn start"; 
-                btnSilent.style.background = "#555"; 
-            }
+            if(btnSilent) { btnSilent.innerText = "START MONITOR"; btnSilent.className = "btn start"; btnSilent.style.background = "#555"; }
             document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
             const inputs = document.querySelectorAll('input:not(#interface_name)');
             inputs.forEach(i => i.disabled = false);
         }
 
-        const statusText = document.getElementById('status-text');
-        const statusDot = document.getElementById('status-dot');
-        statusText.innerText = data.state;
-        statusText.className = "status-text " + data.state.toLowerCase();
-        statusDot.className = "status-dot " + data.state.toLowerCase();
-
-        // Logs
-        if (data.logs.length !== lastLogCount) {
+        // --- SIMPLIFIED CONSOLE LOGS (3 COLORS) ---
+        const consoleDiv = document.getElementById('console-output');
+        if (consoleDiv && data.logs.length !== lastLogCount) {
             lastLogCount = data.logs.length;
-            const consoleDiv = document.getElementById('console-output');
             consoleDiv.innerHTML = "";
             
-            if (data.logs.length === 0) {
-                const div = document.createElement('div');
-                div.className = "log-entry";
-                div.innerText = "[SYSTEM] Ready. Scan network to begin.";
-                consoleDiv.appendChild(div);
+            const isEffectivelyEmpty = (data.logs.length === 0) || (data.logs.length === 1 && data.logs[0].includes("[SYSTEM] Ready."));
+            if (isEffectivelyEmpty) {
+                consoleDiv.innerHTML = '<div class="log-entry placeholder-entry">[SYSTEM] Ready. Scan network to begin.</div>';
+            } else {
+                data.logs.slice().reverse().forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = "log-entry";
+                    
+                    // --- NEW 3-COLOR PALETTE ---
+                    let colorStyle = "#aaaaaa"; // 1. GREY (Default / System)
+                    
+                    // 2. GREEN: Active, Starting, Success, Config, DNS, Proxy
+                    if (log.includes("[*]") || log.includes("[+]") || log.includes("[CONFIG]") || 
+                        log.includes("[DNS]") || log.includes("[PROXY]") || log.includes("[NET]") ||
+                        log.includes("ATTACK ACTIVE")) {
+                        colorStyle = "#4cff79"; 
+                    }
+                    
+                    // 3. RED: Stops, Errors, Captured Data
+                    else if (log.includes("[-]") || log.includes("STOPPED") || 
+                             log.includes("[DATA]") || log.includes("[ALERT]") || 
+                             log.includes("ERROR")) {
+                        colorStyle = "#ff4f4f"; 
+                    }
+                    // ---------------------------
+                    
+                    div.style.color = colorStyle;
+                    div.innerText = log;
+                    consoleDiv.appendChild(div);
+                });
             }
-
-            data.logs.slice().reverse().forEach(log => {
-                const div = document.createElement('div');
-                div.className = "log-entry";
-                if (log.includes("SUCCESS") || log.includes("RESOLVED")) div.classList.add("success");
-                if (log.includes("WARNING") || log.includes("unreachable")) div.classList.add("warning");
-                if (log.includes("ERROR") || log.includes("FATAL")) div.classList.add("error");
-                div.innerText = log;
-                consoleDiv.appendChild(div);
-            });
         }
         
-        // Intercepts
-        // Intercepts
+        // --- INTERCEPTS (Keep simplified) ---
         const dataDiv = document.getElementById('data_output');
         if (dataDiv) {
             dataDiv.innerHTML = "";
             if (data.intercepted_data.length > 0) {
                 data.intercepted_data.slice().reverse().forEach(item => {
-                    // Determine Color based on Type
-                    let color = "#ff8c42"; // Default Orange
-                    if (item.type === "ALERT") color = "#ff4f4f"; // Red for Creds
-                    if (item.type === "WARNING") color = "#aaa";  // Gray for HTML/Noise
-                    if (item.type === "INFO") color = "#4cff79";  // Green for Server Responses
+                    let color = "#ff8c42"; 
+                    if (item.type === "ALERT") color = "#ff4f4f"; // Red
+                    if (item.type === "INFO") color = "#28a745";  // Green
+                    if (item.type === "WARNING") color = "#aaaaaa"; // Grey
 
-                    // Default title if missing (backward compatibility)
                     const displayTitle = item.title || "RAW DATA";
 
                     const div = document.createElement('div');
@@ -355,11 +357,9 @@ function updateDashboard() {
                             <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
                             <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; font-weight:bold; text-decoration:none;">VIEW FULL</a>
                         </div>
-                        
                         <div style="color:${color}; font-weight:bold; font-size:12px; margin-bottom:2px;">
                             [${displayTitle}]
                         </div>
-
                         <div style="color:#e3e3e3; font-family:monospace; word-break:break-all; font-size: 11px; white-space: pre-wrap;">${item.snippet}</div>
                     `;
                     dataDiv.appendChild(div);

