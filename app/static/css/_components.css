@@ -179,6 +179,57 @@
     font-family: monospace;
 }
 
+/* Container for input + button */
+.input-wrapper {
+    position: relative; /* Anchors the absolute button */
+    display: block;
+    margin-bottom: 10px;
+}
+
+/* The Input Field */
+.input-wrapper input {
+    width: 100%;
+    /* Add padding on the right so text doesn't hit the button */
+    padding-right: 40px; 
+    box-sizing: border-box;
+}
+
+/* The Floating Button (Sleek Look) */
+.btn-icon {
+    position: absolute;
+    right: 5px;       /* Stick to the right */
+    top: 50%;         /* Center vertically */
+    transform: translateY(-50%); /* Perfect center alignment */
+    
+    background: transparent; /* No background box */
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+    z-index: 10;      /* Ensure it sits on top of input */
+    transition: all 0.2s ease;
+}
+
+/* Green Plus Sign */
+.btn-icon.add { color: #4cff79; }
+.btn-icon.add:hover { 
+    color: #8affaa; 
+    text-shadow: 0 0 8px #4cff79; 
+}
+
+/* Red Minus Sign */
+.btn-icon.remove { color: #ff4f4f; font-size: 20px; line-height: 0; }
+.btn-icon.remove:hover { 
+    color: #ff8585; 
+    text-shadow: 0 0 8px #ff4f4f; 
+}
+
 /* ======= SECTION LABELS ======= */
 
 .section-label {

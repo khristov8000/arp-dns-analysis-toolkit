@@ -27,52 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// LOCAL STORAGE (Simplified for Global Inputs) 
-function saveState() {
-    const getVal = (id) => {
-        const el = document.getElementById(id);
-        return el ? el.value : '';
-    };
-
-    const state = {
-        tab: currentTab,
-        interface: getVal('interface_name'),
-        
-        // WE ONLY SAVE GLOBAL TARGETS NOW
-        target_ip: getVal('target_ip'),
-        gateway_ip: getVal('gateway_ip'),
-        
-        // Specific Attack Configs
-        dns_domain: getVal('dns_domain'),
-        dns_redirect: getVal('dns_redirect')
-    };
-    localStorage.setItem('mitm_config', JSON.stringify(state));
-}
-
-function loadState() {
-    const saved = localStorage.getItem('mitm_config');
-    if (!saved) return; 
-
-    try {
-        const state = JSON.parse(saved);
-        
-        const setVal = (id, val) => {
-            const el = document.getElementById(id);
-            if(el && val) el.value = val;
-        };
-
-        setVal('interface_name', state.interface);
-        setVal('target_ip', state.target_ip);
-        setVal('gateway_ip', state.gateway_ip);
-        setVal('dns_domain', state.dns_domain);
-        setVal('dns_redirect', state.dns_redirect);
-
-        if (state.tab) switchTab(state.tab, false);
-
-    } catch (e) {
-        console.error("Failed to load state:", e);
-    }
-}
 
 //CORE FUNCTIONS
 function switchTab(mode, shouldSave = true) {
@@ -135,10 +89,17 @@ function runNetworkScan() {
                 alert("No hosts found."); return;
             }
             
-            // Flash GLOBAL inputs
-            flashInput('target_ip'); 
+            // 1. Flash Gateway & DNS (Standard IDs)
             flashInput('gateway_ip'); 
             flashInput('dns_redirect');
+            
+            // 2. Flash ALL Target Inputs (Class-based loop)
+            document.querySelectorAll('.target-input').forEach(el => {
+                // Manually apply the flash logic to each element
+                el.classList.remove('input-flash');
+                void el.offsetWidth; // Trigger reflow to restart animation
+                el.classList.add('input-flash');
+            });
             
             console.log("Scan complete. Hosts cached.");
         } else {
@@ -147,43 +108,172 @@ function runNetworkScan() {
     });
 }
 
-function toggleAttack() {
-    const iface = document.getElementById('interface_name').value;
+let targetIndex = 1;
+
+function addTargetField(value = '') {
+    const container = document.getElementById('target-container');
+    const id = `target_ip_${targetIndex++}`;
+
+    const div = document.createElement('div');
+    div.className = 'input-wrapper target-row';
     
-    const target = document.getElementById('target_ip').value;
+    // Modified HTML for sleek button placement
+    div.innerHTML = `
+        <input type="text" name="target_ip" class="target-input" id="${id}" 
+               value="${value}"
+               placeholder="Another Target IP..." 
+               onfocus="showDropdown(this)" 
+               onblur="hideDropdown(this)">
+        
+        <button type="button" class="btn-icon remove" onclick="removeTargetField(this)">−</button>
+        
+        <div class="custom-dropdown" id="dropdown-${id}"></div>
+    `;
+    
+    container.appendChild(div);
+}
+
+function removeTargetField(btn) {
+    btn.parentElement.remove();
+}
+
+function removeTargetField(btn) {
+    // Remove the parent row
+    btn.parentElement.remove();
+}
+
+// --- ADD THIS AT THE VERY TOP OF APP.JS WITH OTHER GLOBALS ---
+let isProcessing = false; 
+// ------------------------------------------------------------
+
+function toggleAttack() {
+    // 1. GLOBAL LOCK: If we are already doing something, ignore this click completely.
+    if (isProcessing) return; 
+    isProcessing = true;
+
+    const iface = document.getElementById('interface_name').value;
     const gateway = document.getElementById('gateway_ip').value;
     
+    const targetInputs = document.querySelectorAll('.target-input');
+    const targets = Array.from(targetInputs).map(input => input.value).filter(val => val.trim() !== "");
+
     let dnsDomain = "", dnsIp = "", actionStr;
+    let btnId = ""; 
 
     if (currentTab === 'dns') {
         actionStr = 'start_dns';
+        btnId = 'launch-btn-dns';
         dnsDomain = document.getElementById('dns_domain').value;
         dnsIp = document.getElementById('dns_redirect').value; 
     } else if (currentTab === 'ssl') {
         actionStr = 'start_sslstrip';
+        btnId = 'launch-btn-ssl';
     } else {
         actionStr = 'start_silent';
+        btnId = 'launch-btn-silent';
     }
 
-    if(!target) { alert("Please enter a Target IP."); return; }
-    if(!gateway) { alert("Please enter a Gateway IP."); return; }
+    if(targets.length === 0) { 
+        alert("Please enter at least one Target IP."); 
+        isProcessing = false; // Release lock if validation fails
+        return; 
+    }
+    if(!gateway) { 
+        alert("Please enter a Gateway IP."); 
+        isProcessing = false; // Release lock
+        return; 
+    }
     
     const finalAction = isRunning ? 'stop' : actionStr;
-    const inputs = document.querySelectorAll('input:not(#interface_name)');
-    inputs.forEach(i => i.disabled = !isRunning);
+
+    // Visual Feedback
+    const activeBtn = document.getElementById(btnId);
+    if(activeBtn) {
+        activeBtn.disabled = true;
+        activeBtn.innerText = "PROCESSING...";
+        activeBtn.style.cursor = "wait";
+    }
+    
+    // Lock inputs
+    const allInputs = document.querySelectorAll('input:not(#interface_name), .btn-icon');
+    allInputs.forEach(i => i.disabled = true); 
 
     fetch('/action', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ 
             action: finalAction, 
-            target: target, 
+            targets: targets, 
             gateway: gateway, 
             interface: iface,
             dns_domain: dnsDomain,
             dns_ip: dnsIp
         })
-    }).then(() => setTimeout(updateDashboard, 500));
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === "already_running") {
+            console.warn("Attack already active.");
+        }
+        
+        // Wait 1.5 seconds, then update dashboard and RELEASE LOCK
+        setTimeout(() => {
+            updateDashboard();
+            isProcessing = false; // <--- RELEASE LOCK HERE
+        }, 1500);
+    })
+    .catch(err => {
+        console.error("Action failed:", err);
+        isProcessing = false; // Release lock on error
+        if(activeBtn) {
+            activeBtn.disabled = false;
+            activeBtn.innerText = isRunning ? "STOP ATTACK" : "LAUNCH";
+        }
+    });
+}
+
+// --- UPDATE: saveState / loadState (Optional but recommended) ---
+// Update loadState to populate multiple fields if they existed
+function loadState() {
+    const saved = localStorage.getItem('mitm_config');
+    if (!saved) return; 
+
+    try {
+        const state = JSON.parse(saved);
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+
+        setVal('interface_name', state.interface);
+        setVal('gateway_ip', state.gateway_ip);
+        
+        // Handle Target Array
+        if (Array.isArray(state.targets)) {
+            // Set first one
+            if(state.targets[0]) document.getElementById('target_ip_0').value = state.targets[0];
+            // Add extra fields for the rest
+            for(let i = 1; i < state.targets.length; i++) {
+                addTargetField(state.targets[i]);
+            }
+        } else if (state.target_ip) {
+            // Legacy support
+            document.getElementById('target_ip_0').value = state.target_ip;
+        }
+
+        if (state.tab) switchTab(state.tab, false);
+    } catch (e) { console.error(e); }
+}
+
+function saveState() {
+    const targetInputs = document.querySelectorAll('.target-input');
+    const targets = Array.from(targetInputs).map(i => i.value);
+
+    const state = {
+        tab: currentTab,
+        interface: document.getElementById('interface_name').value,
+        targets: targets, // Save Array
+        gateway_ip: document.getElementById('gateway_ip').value,
+        // ... include other fields
+    };
+    localStorage.setItem('mitm_config', JSON.stringify(state));
 }
 
 // UI HELPERS 
@@ -259,76 +349,105 @@ window.onclick = function(event) {
     if (event.target == document.getElementById('scan-modal')) closeModal(); 
 }
 
-// ... (Keep existing variable declarations: currentTab, isRunning, etc.) ...
-
-// ... (Keep existing loadState, saveState, switchTab, runNetworkScan, toggleAttack functions) ...
-
 function updateDashboard() {
     fetch('/update').then(r => r.json()).then(data => {
-        // Metrics
+        // --- 1. Metrics ---
         const pktCount = document.getElementById('packet_count');
         const modeLabel = document.getElementById('current_mode');
-        const macLabel = document.getElementById('target_mac');
         
         if(pktCount) pktCount.innerText = data.packets;
         if(modeLabel) modeLabel.innerText = data.mode;
-        if(macLabel) macLabel.innerText = data.target_mac;
 
-        // State Sync
+        // --- 2. Status Indicator ---
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+
+        if (statusText && statusDot) {
+            if (data.state === "RUNNING") {
+                statusText.innerText = "ATTACK RUNNING";
+                statusText.classList.remove('idle');
+                statusText.classList.add('running');
+                statusDot.classList.remove('idle');
+                statusDot.classList.add('running');
+            } else {
+                statusText.innerText = "SYSTEM IDLE";
+                statusText.classList.remove('running');
+                statusText.classList.add('idle');
+                statusDot.classList.remove('running');
+                statusDot.classList.add('idle');
+            }
+        }
+
+        // --- 3. State Sync ---
         const wasRunning = isRunning;
         isRunning = (data.state === "RUNNING");
         if (isRunning && !wasRunning && data.active_tab) switchTab(data.active_tab, false);
 
-        // Buttons (Visual Update)
+        // --- 4. Buttons (Visual Update - FIXED) ---
         const btnDns = document.getElementById('launch-btn-dns');
         const btnSsl = document.getElementById('launch-btn-ssl');
         const btnSilent = document.getElementById('launch-btn-silent');
         let activeBtn = (currentTab === 'dns') ? btnDns : (currentTab === 'ssl') ? btnSsl : btnSilent;
 
         if (isRunning) {
-            if(activeBtn) { activeBtn.innerText = "STOP ATTACK"; activeBtn.className = "btn stop"; }
+            // If running, the active button should be "STOP" and ENABLED
+            if(activeBtn) { 
+                activeBtn.innerText = "STOP ATTACK"; 
+                activeBtn.className = "btn stop"; 
+                activeBtn.disabled = false;         // <--- FIX ADDED HERE
+                activeBtn.style.cursor = "pointer"; // <--- FIX ADDED HERE
+            }
             document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
         } else {
-            if(btnDns) { btnDns.innerText = "LAUNCH DNS ATTACK"; btnDns.className = "btn start"; }
-            if(btnSsl) { btnSsl.innerText = "LAUNCH SSL STRIP"; btnSsl.className = "btn start"; }
-            if(btnSilent) { btnSilent.innerText = "START MONITOR"; btnSilent.className = "btn start"; btnSilent.style.background = "#555"; }
+            // If idle, reset ALL buttons to "LAUNCH" and ENABLED
+            if(btnDns) { 
+                btnDns.innerText = "LAUNCH DNS ATTACK"; 
+                btnDns.className = "btn start"; 
+                btnDns.disabled = false; // <--- FIX
+                btnDns.style.cursor = "pointer";
+            }
+            if(btnSsl) { 
+                btnSsl.innerText = "LAUNCH SSL STRIP"; 
+                btnSsl.className = "btn start"; 
+                btnSsl.disabled = false; // <--- FIX
+                btnSsl.style.cursor = "pointer";
+            }
+            if(btnSilent) { 
+                btnSilent.innerText = "START MONITOR"; 
+                btnSilent.className = "btn start"; 
+                btnSilent.style.background = "#555"; 
+                btnSilent.disabled = false; // <--- FIX
+                btnSilent.style.cursor = "pointer";
+            }
+            
             document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
             const inputs = document.querySelectorAll('input:not(#interface_name)');
             inputs.forEach(i => i.disabled = false);
+
+            const iconButtons = document.querySelectorAll('.btn-icon');
+            iconButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.pointerEvents = "all";
+                btn.style.cursor = "pointer";
+            });
         }
 
-        // --- SIMPLIFIED CONSOLE LOGS (3 COLORS) ---
+        // --- 5. Console Logs (Keep existing logic) ---
         const consoleDiv = document.getElementById('console-output');
         if (consoleDiv && data.logs.length !== lastLogCount) {
             lastLogCount = data.logs.length;
             consoleDiv.innerHTML = "";
-            
             const isEffectivelyEmpty = (data.logs.length === 0) || (data.logs.length === 1 && data.logs[0].includes("[SYSTEM] Ready."));
+            
             if (isEffectivelyEmpty) {
                 consoleDiv.innerHTML = '<div class="log-entry placeholder-entry">[SYSTEM] Ready. Scan network to begin.</div>';
             } else {
                 data.logs.slice().reverse().forEach(log => {
                     const div = document.createElement('div');
                     div.className = "log-entry";
-                    
-                    // --- NEW 3-COLOR PALETTE ---
-                    let colorStyle = "#aaaaaa"; // 1. GREY (Default / System)
-                    
-                    // 2. GREEN: Active, Starting, Success, Config, DNS, Proxy
-                    if (log.includes("[*]") || log.includes("[+]") || log.includes("[CONFIG]") || 
-                        log.includes("[DNS]") || log.includes("[PROXY]") || log.includes("[NET]") ||
-                        log.includes("ATTACK ACTIVE")) {
-                        colorStyle = "#4cff79"; 
-                    }
-                    
-                    // 3. RED: Stops, Errors, Captured Data
-                    else if (log.includes("[-]") || log.includes("STOPPED") || 
-                             log.includes("[DATA]") || log.includes("[ALERT]") || 
-                             log.includes("ERROR")) {
-                        colorStyle = "#ff4f4f"; 
-                    }
-                    // ---------------------------
-                    
+                    let colorStyle = "#aaaaaa"; 
+                    if (log.includes("[*]") || log.includes("[+]") || log.includes("ACTIVE")) colorStyle = "#4cff79"; 
+                    else if (log.includes("[-]") || log.includes("STOPPED") || log.includes("ERROR") || log.includes("WARNING")) colorStyle = "#ff4f4f"; 
                     div.style.color = colorStyle;
                     div.innerText = log;
                     consoleDiv.appendChild(div);
@@ -336,16 +455,16 @@ function updateDashboard() {
             }
         }
         
-        // --- INTERCEPTS (Keep simplified) ---
+        // --- 6. Intercepted Data ---
         const dataDiv = document.getElementById('data_output');
         if (dataDiv) {
             dataDiv.innerHTML = "";
             if (data.intercepted_data.length > 0) {
                 data.intercepted_data.slice().reverse().forEach(item => {
                     let color = "#ff8c42"; 
-                    if (item.type === "ALERT") color = "#ff4f4f"; // Red
-                    if (item.type === "INFO") color = "#28a745";  // Green
-                    if (item.type === "WARNING") color = "#aaaaaa"; // Grey
+                    if (item.type === "ALERT") color = "#ff4f4f"; 
+                    if (item.type === "INFO") color = "#28a745"; 
+                    if (item.type === "WARNING") color = "#aaaaaa"; 
 
                     const displayTitle = item.title || "RAW DATA";
 

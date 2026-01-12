@@ -7,11 +7,18 @@ STATUS = {
     "state": "IDLE",
     "mode": "NONE",
     "active_tab": "dns",
-    "target": "192.168.1.20",
+    
+    # --- ADD THIS NEW LINE HERE ---
+    "last_stop_time": 0,    # Tracks when we last pressed Stop
+    # ------------------------------
+
+    # CHANGED: 'target' string -> 'targets' list
+    "targets": [],           # List of target IPs from frontend
+    "active_targets": [],    # List of resolved {ip, mac} dicts (for UI display)
+    
     "gateway": "192.168.1.1", 
     "interface": "eth0",
     "packets": 0,
-    "target_mac": "N/A",
     
     # --- VIEW BUFFERS (Cleared by button) ---
     "logs": ["[SYSTEM] Ready."],
