@@ -14,6 +14,7 @@ from core.utils import log_msg, activate_silence_timer
 
 def create_app():
     app = Flask(__name__)
+    # Track active threads to manage lifecycle
     threads = {'attack': None, 'sniffer': None, 'ssl': None, 'dns': None}
 
     @app.route('/')
@@ -30,26 +31,24 @@ def create_app():
         if act == 'clear_data':
             STATUS["intercepted_data"] = []
             return jsonify({"status": "cleared"})
-        if act == 'stop':
-            STOP_EVENT.set()
-            activate_silence_timer()
             
+        if act == 'stop':
+            # Signal all threads to terminate
+            STOP_EVENT.set()
+            # Mute logs briefly to hide aggressive thread termination messages
+            activate_silence_timer()
             return jsonify({"status": "stopped"})
 
         if 'start' in act:
-            # --- [FIX] PREVENT DOUBLE START ---
-            # If an attack is already running, reject the new request.
+            # Prevent race conditions where double-clicks start parallel attacks
             if threads['attack'] and threads['attack'].is_alive():
                  return jsonify({"status": "already_running", "message": "Attack is already active."})
-            # ----------------------------------
 
+            # Reset stop signal for the new session
             STOP_EVENT.clear()
             
-            # --- UPDATED INPUT HANDLING ---
-            # 1. Try to get list of targets
+            # Handle multiple target inputs or legacy single target
             target_list = req.get('targets', [])
-            
-            # 2. Backward compatibility: if single target sent, make it a list
             if not target_list and req.get('target'):
                 target_list = [req.get('target')]
                 
@@ -58,18 +57,16 @@ def create_app():
             STATUS["interface"] = req.get('interface')
             STATUS["dns_domain"] = req.get('dns_domain')
             STATUS["dns_ip"] = req.get('dns_ip')
-            # ------------------------------
         
             if act == 'start_dns': STATUS["active_tab"] = 'dns'
             elif act == 'start_sslstrip': STATUS["active_tab"] = 'ssl'
             elif act == 'start_silent': STATUS["active_tab"] = 'silent'
             
-            # Start Sniffer
+            # Ensure background packet sniffer is running (singleton)
             if not threads['sniffer'] or not threads['sniffer'].is_alive():
                 threads['sniffer'] = threading.Thread(target=start_sniffer, daemon=True)
                 threads['sniffer'].start()
 
-            # MODE SELECTION
             passive_mode = False
 
             if act == 'start_silent':
@@ -84,10 +81,9 @@ def create_app():
                 threads['ssl'] = threading.Thread(target=run_ssl_strip, daemon=True)
                 threads['ssl'].start()
 
-            # Start ARP Loop with TARGET LIST
+            # Launch ARP spoofing in a background daemon thread
             threads['attack'] = threading.Thread(
                 target=run_attack_loop, 
-                # PASS THE LIST HERE 
                 args=(STATUS["targets"], STATUS["gateway"], passive_mode), 
                 daemon=True
             )
@@ -119,9 +115,10 @@ def create_app():
     def export_data():
         memory_file = io.BytesIO()
         
+        # Create an in-memory ZIP file containing logs and captures
         with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
             
-            # CSV Generation
+            # Generate CSV report from intercept memory
             si = io.StringIO()
             cw = csv.writer(si)
             cw.writerow(['Timestamp', 'Source IP', 'Destination', 'Type', 'Content Snippet', 'Full Packet ID'])
@@ -137,11 +134,11 @@ def create_app():
                 ])
             zf.writestr('intercept_report.csv', si.getvalue())
             
-            # Logs Generation
+            # Save raw console logs
             logs_content = "\n".join(STATUS["all_logs"])
             zf.writestr('console_logs.txt', logs_content)
-            
-            # Capture Files
+                
+            # Archive raw HTML captures
             if os.path.exists(CAPTURE_DIR):
                 for root, dirs, files in os.walk(CAPTURE_DIR):
                     for file in files:

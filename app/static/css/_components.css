@@ -1,6 +1,4 @@
-/* ======= BUTTONS ======= */
-
-/* Primary Buttons */
+/* Primary action buttons (Start/Stop/Silent) */
 .btn {
     width: 100%;
     padding: 12px;
@@ -13,25 +11,12 @@
     transition: opacity 0.2s;
 }
 
-.btn:hover {
-    opacity: 0.85;
-}
+.btn:hover { opacity: 0.85; }
+.start { background: var(--primary-blue); color: white; }
+.stop { background: var(--error-red); color: white; }
+.silent-btn { background: #555; }
 
-.start {
-    background: var(--primary-blue);
-    color: white;
-}
-
-.stop {
-    background: var(--error-red);
-    color: white;
-}
-
-.silent-btn {
-    background: #555;
-}
-
-/* Scan Button */
+/* Network Scan button with loading state support */
 .scan-btn {
     padding: 10px;
     margin-top: 5px;
@@ -61,7 +46,7 @@
     box-shadow: none;
 }
 
-/* Export Button */
+/* Data export button styling */
 .export-btn {
     background: var(--border-light);
     border: 1px solid #444;
@@ -90,8 +75,7 @@
     color: var(--primary-blue);
 }
 
-/* ======= TABS ======= */
-
+/* Navigation Tabs */
 .tab-bar {
     display: flex;
     gap: 5px;
@@ -129,13 +113,21 @@
     color: #999;
 }
 
-/* ======= INPUTS & DROPDOWNS ======= */
-
+/* Input wrappers and dynamic target fields */
 .input-wrapper {
     position: relative;
     width: 100%;
+    display: block;
+    margin-bottom: 10px;
 }
 
+.input-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Padding for the absolute positioned +/- button */
+    box-sizing: border-box;
+}
+
+/* Autocomplete Dropdown styling */
 .custom-dropdown {
     position: absolute;
     top: 100%;
@@ -152,9 +144,7 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
-.custom-dropdown.show {
-    display: block;
-}
+.custom-dropdown.show { display: block; }
 
 .dropdown-item {
     padding: 10px;
@@ -179,29 +169,13 @@
     font-family: monospace;
 }
 
-/* Container for input + button */
-.input-wrapper {
-    position: relative; /* Anchors the absolute button */
-    display: block;
-    margin-bottom: 10px;
-}
-
-/* The Input Field */
-.input-wrapper input {
-    width: 100%;
-    /* Add padding on the right so text doesn't hit the button */
-    padding-right: 40px; 
-    box-sizing: border-box;
-}
-
-/* The Floating Button (Sleek Look) */
+/* Floating +/- buttons inside input fields */
 .btn-icon {
     position: absolute;
-    right: 5px;       /* Stick to the right */
-    top: 50%;         /* Center vertically */
-    transform: translateY(-50%); /* Perfect center alignment */
-    
-    background: transparent; /* No background box */
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
     border: none;
     font-size: 20px;
     font-weight: bold;
@@ -212,26 +186,23 @@
     align-items: center;
     justify-content: center;
     outline: none;
-    z-index: 10;      /* Ensure it sits on top of input */
+    z-index: 10;
     transition: all 0.2s ease;
 }
 
-/* Green Plus Sign */
 .btn-icon.add { color: #4cff79; }
 .btn-icon.add:hover { 
     color: #8affaa; 
     text-shadow: 0 0 8px #4cff79; 
 }
 
-/* Red Minus Sign */
-.btn-icon.remove { color: #ff4f4f; font-size: 20px; line-height: 0; }
+.btn-icon.remove { color: #ff4f4f; line-height: 0; }
 .btn-icon.remove:hover { 
     color: #ff8585; 
     text-shadow: 0 0 8px #ff4f4f; 
 }
 
-/* ======= SECTION LABELS ======= */
-
+/* Section Labels (DNS/SSL/Silent) */
 .section-label {
     margin-bottom: 8px;
     display: block;
@@ -240,18 +211,7 @@
     text-transform: uppercase;
 }
 
-.dns-label {
-    color: var(--success-green);
-}
-
-.ssl-label {
-    color: var(--alert-orange);
-}
-
-.silent-label {
-    color: var(--text-muted);
-}
-
-.warning-text {
-    color: var(--alert-orange);
-}
+.dns-label { color: var(--success-green); }
+.ssl-label { color: var(--alert-orange); }
+.silent-label { color: var(--text-muted); }
+.warning-text { color: var(--alert-orange); }

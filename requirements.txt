@@ -1,2 +1,2 @@
-flask
-scapy
+flask>=2.0.0
+scapy>=2.4.5    

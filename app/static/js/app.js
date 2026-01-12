@@ -1,22 +1,23 @@
-// Global State Variables
+// Global state variables
 let currentTab = 'dns';
 let isRunning = false;
 let scannedHosts = []; 
 let lastLogCount = 0;
+let isProcessing = false; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Console
+    // Initialize console if empty
     const consoleDiv = document.getElementById('console-output');
     if (consoleDiv.innerHTML.trim() === "") {
         consoleDiv.innerHTML = '<div class="log-entry">[SYSTEM] Ready. Scan network to begin.</div>';
     }
 
-    // Default to DNS tab if none active
+    // Default to DNS tab
     if (document.querySelectorAll('.tab-btn.active').length === 0) {
         switchTab('dns', false);
     }
 
-    // Sync with server
+    // Sync state with server
     fetch('/update').then(r => r.json()).then(data => {
         if (data.state === "RUNNING") {
             if (data.active_tab) switchTab(data.active_tab, false);
@@ -27,8 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
-//CORE FUNCTIONS
+// UI Switching logic
 function switchTab(mode, shouldSave = true) {
     currentTab = mode;
     
@@ -53,17 +53,38 @@ function switchTab(mode, shouldSave = true) {
         silentContent.classList.remove('hidden');
     }
 
-    // Clear all input fields when switching tabs
     if (shouldSave) {
         document.getElementById('target_ip').value = '';
         document.getElementById('gateway_ip').value = '';
         document.getElementById('dns_domain').value = '';
         document.getElementById('dns_redirect').value = '';
     }
-
-    if (!isRunning && shouldSave) {}  // State saving disabled
 }
 
+// Dynamic Target Fields management
+let targetIndex = 1;
+
+function addTargetField(value = '') {
+    const container = document.getElementById('target-container');
+    const id = `target_ip_${targetIndex++}`;
+
+    const div = document.createElement('div');
+    div.className = 'input-wrapper target-row';
+    div.innerHTML = `
+        <input type="text" name="target_ip" class="target-input" id="${id}" 
+               value="${value}" placeholder="Another Target IP..." 
+               onfocus="showDropdown(this)" onblur="hideDropdown(this)">
+        <button type="button" class="btn-icon remove" onclick="removeTargetField(this)">−</button>
+        <div class="custom-dropdown" id="dropdown-${id}"></div>
+    `;
+    container.appendChild(div);
+}
+
+function removeTargetField(btn) {
+    btn.parentElement.remove();
+}
+
+// Network Action Functions
 function runNetworkScan() {
     const btn = document.getElementById('scan-btn');
     const iface = document.getElementById('interface_name').value;
@@ -89,15 +110,12 @@ function runNetworkScan() {
                 alert("No hosts found."); return;
             }
             
-            // 1. Flash Gateway & DNS (Standard IDs)
             flashInput('gateway_ip'); 
             flashInput('dns_redirect');
             
-            // 2. Flash ALL Target Inputs (Class-based loop)
             document.querySelectorAll('.target-input').forEach(el => {
-                // Manually apply the flash logic to each element
                 el.classList.remove('input-flash');
-                void el.offsetWidth; // Trigger reflow to restart animation
+                void el.offsetWidth;
                 el.classList.add('input-flash');
             });
             
@@ -108,41 +126,8 @@ function runNetworkScan() {
     });
 }
 
-let targetIndex = 1;
-
-function addTargetField(value = '') {
-    const container = document.getElementById('target-container');
-    const id = `target_ip_${targetIndex++}`;
-
-    const div = document.createElement('div');
-    div.className = 'input-wrapper target-row';
-    
-    // Modified HTML for sleek button placement
-    div.innerHTML = `
-        <input type="text" name="target_ip" class="target-input" id="${id}" 
-               value="${value}"
-               placeholder="Another Target IP..." 
-               onfocus="showDropdown(this)" 
-               onblur="hideDropdown(this)">
-        
-        <button type="button" class="btn-icon remove" onclick="removeTargetField(this)">−</button>
-        
-        <div class="custom-dropdown" id="dropdown-${id}"></div>
-    `;
-    
-    container.appendChild(div);
-}
-
-function removeTargetField(btn) {
-    btn.parentElement.remove();
-}
-
-// --- ADD THIS AT THE VERY TOP OF APP.JS WITH OTHER GLOBALS ---
-let isProcessing = false; 
-// ------------------------------------------------------------
-
 function toggleAttack() {
-    // 1. GLOBAL LOCK: If we are already doing something, ignore this click completely.
+    // Prevent double submissions
     if (isProcessing) return; 
     isProcessing = true;
 
@@ -152,8 +137,7 @@ function toggleAttack() {
     const targetInputs = document.querySelectorAll('.target-input');
     const targets = Array.from(targetInputs).map(input => input.value).filter(val => val.trim() !== "");
 
-    let dnsDomain = "", dnsIp = "", actionStr;
-    let btnId = ""; 
+    let dnsDomain = "", dnsIp = "", actionStr = "", btnId = ""; 
 
     if (currentTab === 'dns') {
         actionStr = 'start_dns';
@@ -170,18 +154,18 @@ function toggleAttack() {
 
     if(targets.length === 0) { 
         alert("Please enter at least one Target IP."); 
-        isProcessing = false; // Release lock if validation fails
+        isProcessing = false;
         return; 
     }
     if(!gateway) { 
         alert("Please enter a Gateway IP."); 
-        isProcessing = false; // Release lock
+        isProcessing = false;
         return; 
     }
     
     const finalAction = isRunning ? 'stop' : actionStr;
 
-    // Visual Feedback
+    // Visual locking
     const activeBtn = document.getElementById(btnId);
     if(activeBtn) {
         activeBtn.disabled = true;
@@ -189,7 +173,6 @@ function toggleAttack() {
         activeBtn.style.cursor = "wait";
     }
     
-    // Lock inputs
     const allInputs = document.querySelectorAll('input:not(#interface_name), .btn-icon');
     allInputs.forEach(i => i.disabled = true); 
 
@@ -211,7 +194,7 @@ function toggleAttack() {
             console.warn("Attack already active.");
         }
         
-        // Wait 1.5 seconds, then update dashboard and RELEASE LOCK
+        // Wait for server thread settlement
         setTimeout(() => {
             updateDashboard();
             isProcessing = false;
@@ -219,7 +202,7 @@ function toggleAttack() {
     })
     .catch(err => {
         console.error("Action failed:", err);
-        isProcessing = false; // Release lock on error
+        isProcessing = false; 
         if(activeBtn) {
             activeBtn.disabled = false;
             activeBtn.innerText = isRunning ? "STOP ATTACK" : "LAUNCH";
@@ -227,50 +210,147 @@ function toggleAttack() {
     });
 }
 
-// Update loadState to populate multiple fields if they existed
-function loadState() {
-    const saved = localStorage.getItem('mitm_config');
-    if (!saved) return; 
-
-    try {
-        const state = JSON.parse(saved);
-        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-
-        setVal('interface_name', state.interface);
-        setVal('gateway_ip', state.gateway_ip);
+// Main Dashboard Update Loop
+function updateDashboard() {
+    fetch('/update').then(r => r.json()).then(data => {
+        // Update metrics
+        const pktCount = document.getElementById('packet_count');
+        const modeLabel = document.getElementById('current_mode');
         
-        // Handle Target Array
-        if (Array.isArray(state.targets)) {
-            // Set first one
-            if(state.targets[0]) document.getElementById('target_ip_0').value = state.targets[0];
-            // Add extra fields for the rest
-            for(let i = 1; i < state.targets.length; i++) {
-                addTargetField(state.targets[i]);
+        if(pktCount) pktCount.innerText = data.packets;
+        if(modeLabel) modeLabel.innerText = data.mode;
+
+        // Update Status Indicator
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+
+        if (statusText && statusDot) {
+            if (data.state === "RUNNING") {
+                statusText.innerText = "ATTACK RUNNING";
+                statusText.classList.remove('idle');
+                statusText.classList.add('running');
+                statusDot.classList.remove('idle');
+                statusDot.classList.add('running');
+            } else {
+                statusText.innerText = "SYSTEM IDLE";
+                statusText.classList.remove('running');
+                statusText.classList.add('idle');
+                statusDot.classList.remove('running');
+                statusDot.classList.add('idle');
             }
-        } else if (state.target_ip) {
-            // Legacy support
-            document.getElementById('target_ip_0').value = state.target_ip;
         }
 
-        if (state.tab) switchTab(state.tab, false);
-    } catch (e) { console.error(e); }
+        // Sync State
+        const wasRunning = isRunning;
+        isRunning = (data.state === "RUNNING");
+        if (isRunning && !wasRunning && data.active_tab) switchTab(data.active_tab, false);
+
+        // Update Buttons and Inputs based on state
+        const btnDns = document.getElementById('launch-btn-dns');
+        const btnSsl = document.getElementById('launch-btn-ssl');
+        const btnSilent = document.getElementById('launch-btn-silent');
+        let activeBtn = (currentTab === 'dns') ? btnDns : (currentTab === 'ssl') ? btnSsl : btnSilent;
+
+        if (isRunning) {
+            if(activeBtn) { 
+                activeBtn.innerText = "STOP ATTACK"; 
+                activeBtn.className = "btn stop"; 
+                activeBtn.disabled = false;         
+                activeBtn.style.cursor = "pointer"; 
+            }
+            document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
+        } else {
+            if(btnDns) { 
+                btnDns.innerText = "LAUNCH DNS ATTACK"; 
+                btnDns.className = "btn start"; 
+                btnDns.disabled = false; 
+                btnDns.style.cursor = "pointer";
+            }
+            if(btnSsl) { 
+                btnSsl.innerText = "LAUNCH SSL STRIP"; 
+                btnSsl.className = "btn start"; 
+                btnSsl.disabled = false; 
+                btnSsl.style.cursor = "pointer";
+            }
+            if(btnSilent) { 
+                btnSilent.innerText = "START MONITOR"; 
+                btnSilent.className = "btn start"; 
+                btnSilent.style.background = "#555"; 
+                btnSilent.disabled = false; 
+                btnSilent.style.cursor = "pointer";
+            }
+            
+            document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
+            const inputs = document.querySelectorAll('input:not(#interface_name)');
+            inputs.forEach(i => i.disabled = false);
+
+            // Re-enable dynamic remove buttons
+            const iconButtons = document.querySelectorAll('.btn-icon');
+            iconButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.pointerEvents = "all";
+                btn.style.cursor = "pointer";
+            });
+        }
+
+        // Update Console Logs
+        const consoleDiv = document.getElementById('console-output');
+        if (consoleDiv && data.logs.length !== lastLogCount) {
+            lastLogCount = data.logs.length;
+            consoleDiv.innerHTML = "";
+            const isEffectivelyEmpty = (data.logs.length === 0) || (data.logs.length === 1 && data.logs[0].includes("[SYSTEM] Ready."));
+            
+            if (isEffectivelyEmpty) {
+                consoleDiv.innerHTML = '<div class="log-entry placeholder-entry">[SYSTEM] Ready. Scan network to begin.</div>';
+            } else {
+                data.logs.slice().reverse().forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = "log-entry";
+                    let colorStyle = "#aaaaaa"; 
+                    if (log.includes("[*]") || log.includes("[+]") || log.includes("ACTIVE")) colorStyle = "#4cff79"; 
+                    else if (log.includes("[-]") || log.includes("STOPPED") || log.includes("ERROR") || log.includes("WARNING")) colorStyle = "#ff4f4f"; 
+                    div.style.color = colorStyle;
+                    div.innerText = log;
+                    consoleDiv.appendChild(div);
+                });
+            }
+        }
+        
+        // Update Intercepted Data
+        const dataDiv = document.getElementById('data_output');
+        if (dataDiv) {
+            dataDiv.innerHTML = "";
+            if (data.intercepted_data.length > 0) {
+                data.intercepted_data.slice().reverse().forEach(item => {
+                    let color = "#ff8c42"; 
+                    if (item.type === "ALERT") color = "#ff4f4f"; 
+                    if (item.type === "INFO") color = "#28a745"; 
+                    if (item.type === "WARNING") color = "#aaaaaa"; 
+
+                    const displayTitle = item.title || "RAW DATA";
+                    const div = document.createElement('div');
+                    div.className = "log-entry intercept-entry";
+                    div.style.borderLeft = `3px solid ${color}`;
+                    div.innerHTML = `
+                        <div style="font-size:11px; color:#555; display:flex; justify-content:space-between; margin-bottom: 2px;">
+                            <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
+                            <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; font-weight:bold; text-decoration:none;">VIEW FULL</a>
+                        </div>
+                        <div style="color:${color}; font-weight:bold; font-size:12px; margin-bottom:2px;">
+                            [${displayTitle}]
+                        </div>
+                        <div style="color:#e3e3e3; font-family:monospace; word-break:break-all; font-size: 11px; white-space: pre-wrap;">${item.snippet}</div>
+                    `;
+                    dataDiv.appendChild(div);
+                });
+            } else {
+                dataDiv.innerHTML = '<div class="log-entry placeholder-entry" style="opacity:0.5">Waiting for traffic...</div>';
+            }
+        }
+    });
 }
 
-function saveState() {
-    const targetInputs = document.querySelectorAll('.target-input');
-    const targets = Array.from(targetInputs).map(i => i.value);
-
-    const state = {
-        tab: currentTab,
-        interface: document.getElementById('interface_name').value,
-        targets: targets, // Save Array
-        gateway_ip: document.getElementById('gateway_ip').value,
-        // ... include other fields
-    };
-    localStorage.setItem('mitm_config', JSON.stringify(state));
-}
-
-// UI HELPERS 
+// Helpers
 function showDropdown(inputElement) {
     const dropdownId = 'dropdown-' + inputElement.id;
     const dropdown = document.getElementById(dropdownId);
@@ -278,7 +358,6 @@ function showDropdown(inputElement) {
 
     dropdown.innerHTML = '';
     
-    // Add scanned hosts if available
     if(scannedHosts.length > 0) {
         scannedHosts.forEach(host => {
             const ip = host.ip ? host.ip : host;
@@ -295,13 +374,11 @@ function showDropdown(inputElement) {
         });
     }
     
-    // Add hardcoded Gateway IP option only for DNS tab and gateway_ip field
+    // Add default gateway for DNS tab
     if (inputElement.id === 'gateway_ip' && currentTab === 'dns') {
-        // Add divider
         const divider = document.createElement('div');
         divider.style.borderTop = '1px solid #333';
         divider.style.margin = '5px 0';
-        divider.style.height = '0';
         dropdown.appendChild(divider);
         
         const div = document.createElement('div');
@@ -343,147 +420,6 @@ window.onclick = function(event) {
     if (event.target == document.getElementById('scan-modal')) closeModal(); 
 }
 
-function updateDashboard() {
-    fetch('/update').then(r => r.json()).then(data => {
-        // --- 1. Metrics ---
-        const pktCount = document.getElementById('packet_count');
-        const modeLabel = document.getElementById('current_mode');
-        
-        if(pktCount) pktCount.innerText = data.packets;
-        if(modeLabel) modeLabel.innerText = data.mode;
-
-        // --- 2. Status Indicator ---
-        const statusText = document.getElementById('status-text');
-        const statusDot = document.getElementById('status-dot');
-
-        if (statusText && statusDot) {
-            if (data.state === "RUNNING") {
-                statusText.innerText = "ATTACK RUNNING";
-                statusText.classList.remove('idle');
-                statusText.classList.add('running');
-                statusDot.classList.remove('idle');
-                statusDot.classList.add('running');
-            } else {
-                statusText.innerText = "SYSTEM IDLE";
-                statusText.classList.remove('running');
-                statusText.classList.add('idle');
-                statusDot.classList.remove('running');
-                statusDot.classList.add('idle');
-            }
-        }
-
-        // --- 3. State Sync ---
-        const wasRunning = isRunning;
-        isRunning = (data.state === "RUNNING");
-        if (isRunning && !wasRunning && data.active_tab) switchTab(data.active_tab, false);
-
-        // --- 4. Buttons (Visual Update - FIXED) ---
-        const btnDns = document.getElementById('launch-btn-dns');
-        const btnSsl = document.getElementById('launch-btn-ssl');
-        const btnSilent = document.getElementById('launch-btn-silent');
-        let activeBtn = (currentTab === 'dns') ? btnDns : (currentTab === 'ssl') ? btnSsl : btnSilent;
-
-        if (isRunning) {
-            // If running, the active button should be "STOP" and ENABLED
-            if(activeBtn) { 
-                activeBtn.innerText = "STOP ATTACK"; 
-                activeBtn.className = "btn stop"; 
-                activeBtn.disabled = false;         
-                activeBtn.style.cursor = "pointer"; 
-            }
-            document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "none");
-        } else {
-            // If idle, reset ALL buttons to "LAUNCH" and ENABLED
-            if(btnDns) { 
-                btnDns.innerText = "LAUNCH DNS ATTACK"; 
-                btnDns.className = "btn start"; 
-                btnDns.disabled = false; // <--- FIX
-                btnDns.style.cursor = "pointer";
-            }
-            if(btnSsl) { 
-                btnSsl.innerText = "LAUNCH SSL STRIP"; 
-                btnSsl.className = "btn start"; 
-                btnSsl.disabled = false; // <--- FIX
-                btnSsl.style.cursor = "pointer";
-            }
-            if(btnSilent) { 
-                btnSilent.innerText = "START MONITOR"; 
-                btnSilent.className = "btn start"; 
-                btnSilent.style.background = "#555"; 
-                btnSilent.disabled = false; // <--- FIX
-                btnSilent.style.cursor = "pointer";
-            }
-            
-            document.querySelectorAll('.tab-btn').forEach(t => t.style.pointerEvents = "all");
-            const inputs = document.querySelectorAll('input:not(#interface_name)');
-            inputs.forEach(i => i.disabled = false);
-
-            const iconButtons = document.querySelectorAll('.btn-icon');
-            iconButtons.forEach(btn => {
-                btn.disabled = false;
-                btn.style.pointerEvents = "all";
-                btn.style.cursor = "pointer";
-            });
-        }
-
-        // --- 5. Console Logs (Keep existing logic) ---
-        const consoleDiv = document.getElementById('console-output');
-        if (consoleDiv && data.logs.length !== lastLogCount) {
-            lastLogCount = data.logs.length;
-            consoleDiv.innerHTML = "";
-            const isEffectivelyEmpty = (data.logs.length === 0) || (data.logs.length === 1 && data.logs[0].includes("[SYSTEM] Ready."));
-            
-            if (isEffectivelyEmpty) {
-                consoleDiv.innerHTML = '<div class="log-entry placeholder-entry">[SYSTEM] Ready. Scan network to begin.</div>';
-            } else {
-                data.logs.slice().reverse().forEach(log => {
-                    const div = document.createElement('div');
-                    div.className = "log-entry";
-                    let colorStyle = "#aaaaaa"; 
-                    if (log.includes("[*]") || log.includes("[+]") || log.includes("ACTIVE")) colorStyle = "#4cff79"; 
-                    else if (log.includes("[-]") || log.includes("STOPPED") || log.includes("ERROR") || log.includes("WARNING")) colorStyle = "#ff4f4f"; 
-                    div.style.color = colorStyle;
-                    div.innerText = log;
-                    consoleDiv.appendChild(div);
-                });
-            }
-        }
-        
-        // --- 6. Intercepted Data ---
-        const dataDiv = document.getElementById('data_output');
-        if (dataDiv) {
-            dataDiv.innerHTML = "";
-            if (data.intercepted_data.length > 0) {
-                data.intercepted_data.slice().reverse().forEach(item => {
-                    let color = "#ff8c42"; 
-                    if (item.type === "ALERT") color = "#ff4f4f"; 
-                    if (item.type === "INFO") color = "#28a745"; 
-                    if (item.type === "WARNING") color = "#aaaaaa"; 
-
-                    const displayTitle = item.title || "RAW DATA";
-
-                    const div = document.createElement('div');
-                    div.className = "log-entry intercept-entry";
-                    div.style.borderLeft = `3px solid ${color}`;
-                    div.innerHTML = `
-                        <div style="font-size:11px; color:#555; display:flex; justify-content:space-between; margin-bottom: 2px;">
-                            <span>[${item.time}] ${item.src} &rarr; ${item.dst}</span>
-                            <a href="/view/${item.id || ''}" target="_blank" style="color:${color}; font-weight:bold; text-decoration:none;">VIEW FULL</a>
-                        </div>
-                        <div style="color:${color}; font-weight:bold; font-size:12px; margin-bottom:2px;">
-                            [${displayTitle}]
-                        </div>
-                        <div style="color:#e3e3e3; font-family:monospace; word-break:break-all; font-size: 11px; white-space: pre-wrap;">${item.snippet}</div>
-                    `;
-                    dataDiv.appendChild(div);
-                });
-            } else {
-                dataDiv.innerHTML = '<div class="log-entry placeholder-entry" style="opacity:0.5">Waiting for traffic...</div>';
-            }
-        }
-    });
-}
-
 function clearConsole(target) {
     const actionType = (target === 'console-output') ? 'clear_logs' : 'clear_data';
     if(target === 'console-output') lastLogCount = -1;
@@ -498,6 +434,43 @@ function toggleConsole(id, btn) {
     const consoleDiv = document.getElementById(id);
     const isCollapsed = consoleDiv.classList.toggle('collapsed');
     btn.style.transform = isCollapsed ? "rotate(-90deg)" : "rotate(0deg)";
+}
+
+function loadState() {
+    const saved = localStorage.getItem('mitm_config');
+    if (!saved) return; 
+
+    try {
+        const state = JSON.parse(saved);
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+
+        setVal('interface_name', state.interface);
+        setVal('gateway_ip', state.gateway_ip);
+        
+        if (Array.isArray(state.targets)) {
+            if(state.targets[0]) document.getElementById('target_ip_0').value = state.targets[0];
+            for(let i = 1; i < state.targets.length; i++) {
+                addTargetField(state.targets[i]);
+            }
+        } else if (state.target_ip) {
+            document.getElementById('target_ip_0').value = state.target_ip;
+        }
+
+        if (state.tab) switchTab(state.tab, false);
+    } catch (e) { console.error(e); }
+}
+
+function saveState() {
+    const targetInputs = document.querySelectorAll('.target-input');
+    const targets = Array.from(targetInputs).map(i => i.value);
+
+    const state = {
+        tab: currentTab,
+        interface: document.getElementById('interface_name').value,
+        targets: targets,
+        gateway_ip: document.getElementById('gateway_ip').value,
+    };
+    localStorage.setItem('mitm_config', JSON.stringify(state));
 }
 
 // Update dashboard every 1 second

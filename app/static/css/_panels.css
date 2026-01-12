@@ -1,5 +1,4 @@
-/* ======= PANEL HEADERS ======= */
-
+/* Panel Headers */
 .panel-header {
     display: flex;
     justify-content: space-between;
@@ -17,12 +16,9 @@
     color: #ccc;
 }
 
-.data-panel-title {
-    color: var(--alert-orange);
-}
+.data-panel-title { color: var(--alert-orange); }
 
-/* ======= WINDOW CONTROLS ======= */
-
+/* Window Controls */
 .window-controls {
     display: flex;
     gap: 8px;
@@ -39,20 +35,11 @@
     transition: color 0.2s;
 }
 
-.win-btn:hover {
-    color: #fff;
-}
+.win-btn:hover { color: #fff; }
+.clear-btn:hover { color: var(--error-red); }
+.collapse-btn { transition: transform 0.2s; }
 
-.clear-btn:hover {
-    color: var(--error-red);
-}
-
-.collapse-btn {
-    transition: transform 0.2s;
-}
-
-/* ======= METRICS ======= */
-
+/* Dashboard Metrics */
 .metrics {
     display: flex;
     justify-content: space-between;
@@ -79,8 +66,7 @@
     color: #fff;
 }
 
-/* ======= CONSOLE ======= */
-
+/* Console Window */
 .console {
     background: #0b0c0f;
     padding: 12px;
@@ -113,17 +99,10 @@
     border-bottom: 1px solid #15171c;
 }
 
-.log-entry.success {
-    color: var(--success-green);
-}
-
-.log-entry.warning {
-    color: var(--warning-yellow);
-}
-
-.log-entry.error {
-    color: var(--error-red);
-}
+.log-entry.success { color: var(--success-green); }
+.log-entry.warning { color: var(--warning-yellow); }
+.log-entry.error { color: var(--error-red); }
+.placeholder-entry { opacity: 0.5; }
 
 .intercept-entry {
     border-left: 3px solid var(--alert-orange);
@@ -131,12 +110,7 @@
     margin-bottom: 5px;
 }
 
-.placeholder-entry {
-    opacity: 0.5;
-}
-
-/* ======= MODAL ======= */
-
+/* Modal Dialog */
 .modal {
     position: fixed;
     z-index: 1000;
@@ -183,9 +157,7 @@
     transition: color 0.2s;
 }
 
-.close-btn:hover {
-    color: #fff;
-}
+.close-btn:hover { color: #fff; }
 
 .scan-list {
     display: flex;

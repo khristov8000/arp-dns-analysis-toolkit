@@ -1,6 +1,4 @@
-/* ======= LAYOUT & STRUCTURE ======= */
-
-/* Grid Layout */
+/* Main 2-Column Grid Layout */
 .grid {
     display: grid;
     grid-template-columns: 350px auto;
@@ -19,7 +17,7 @@
     gap: 0;
 }
 
-/* Panels & Cards */
+/* General Panel Styling */
 .panel {
     background: var(--bg-panel);
     padding: 20px;
@@ -33,7 +31,7 @@
     flex-direction: column;
 }
 
-/* Control Panel */
+/* Configuration Panel Specifics */
 .config-panel {
     background: var(--bg-panel);
     padding: 20px;
@@ -42,17 +40,10 @@
     border-top: 1px solid var(--border-light);
 }
 
-.input-group {
-    margin-bottom: 18px;
-}
+.input-group { margin-bottom: 18px; }
+.interface-group { display: flex; gap: 10px; }
 
-/* Interface Group */
-.interface-group {
-    display: flex;
-    gap: 10px;
-}
-
-/* Header Panel */
+/* Header Component */
 .arp-header {
     background: #131518;
     border: 1px solid var(--border-light);
@@ -86,7 +77,7 @@
     color: var(--text-muted);
 }
 
-/* Info Text */
+/* Information Box Styles */
 .info-text {
     font-size: 13px;
     color: var(--text-secondary);
@@ -98,15 +89,6 @@
     border: 1px solid #222;
 }
 
-.silent-info {
-    border-left: 3px solid var(--text-muted);
-}
-
-.ssl-info {
-    border-left: 3px solid var(--alert-orange);
-}
-
-.stealth-features {
-    padding-left: 20px;
-    margin: 5px 0;
-}
+.silent-info { border-left: 3px solid var(--text-muted); }
+.ssl-info { border-left: 3px solid var(--alert-orange); }
+.stealth-features { padding-left: 20px; margin: 5px 0; }

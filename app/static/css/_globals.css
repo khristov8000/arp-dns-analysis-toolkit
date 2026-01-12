@@ -1,4 +1,4 @@
-/* ======= GLOBAL STYLES ======= */
+/* Base Layout and Typography */
 body {
     margin: 0;
     font-family: "Inter", sans-serif;
@@ -16,25 +16,28 @@ body {
     margin: auto;
 }
 
-/* ======= COLOR PALETTE ======= */
+/* Global Color Palette */
 :root {
     --primary-blue: #1f7dff;
     --success-green: #4cff79;
     --warning-yellow: #ffd86b;
     --error-red: #ff4f4f;
     --alert-orange: #ff8c42;
+    
     --bg-dark: #0d0f12;
     --bg-panel: #15171c;
     --bg-input: #0f1115;
     --bg-hover: #1a1c21;
+    
     --border-light: #2b2f36;
     --border-dark: #1f2229;
+    
     --text-primary: #e3e3e3;
     --text-secondary: #888;
     --text-muted: #666;
 }
 
-/* ======= TYPOGRAPHY ======= */
+/* Basic Typography */
 label {
     font-size: 12px;
     opacity: 0.7;
@@ -42,7 +45,7 @@ label {
     margin-bottom: 5px;
 }
 
-/* ======= FORM ELEMENTS ======= */
+/* Default Input Styling */
 input[type="text"] {
     width: 100%;
     padding: 10px;
@@ -59,16 +62,14 @@ input[type="text"]:focus {
     border-color: var(--primary-blue);
 }
 
-/* ======= UTILITY CLASSES ======= */
+/* Utilities */
 .disabled {
     background: #131518;
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-.hidden {
-    display: none;
-}
+.hidden { display: none; }
 
 .divider {
     border-top: 1px dashed #333;
