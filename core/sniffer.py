@@ -1,10 +1,12 @@
 import scapy.all as scapy
 import uuid
 import time
+import hashlib  # <--- NEW IMPORT
 from . import STATUS, STOP_EVENT, CAPTURE_DIR
 from .utils import log_msg, set_promiscuous_mode
 
-# Packet Analysis & Data Extraction
+# Global cache to prevent duplicate logs
+recent_packets = {}  # <--- NEW CACHE
 
 def packet_callback(packet):
     if STOP_EVENT.is_set(): return
@@ -19,11 +21,24 @@ def packet_callback(packet):
                 return 
 
             # SENSITIVITY DETECTION
-           
             is_sensitive = "POST " in payload or "password" in payload
             
             if is_sensitive:
-                # 1. Generate Consistent Name (Time + Source)
+                # --- NEW DEDUPLICATION LOGIC START ---
+                # 1. Create a unique fingerprint (hash) of the packet content
+                payload_hash = hashlib.md5(payload.encode()).hexdigest()
+                current_time = time.time()
+                
+                # 2. Check if we saw this exact data recently (within 2 seconds)
+                if payload_hash in recent_packets:
+                    if current_time - recent_packets[payload_hash] < 2.0:
+                        return # Stop here, do not log duplicate
+                
+                # 3. Update the cache with the new time
+                recent_packets[payload_hash] = current_time
+                # --- NEW DEDUPLICATION LOGIC END ---
+
+                # 4. Generate Consistent Name (Time + Source)
                 timestamp_id = time.strftime('%H%M%S')
                 clean_src = packet[scapy.IP].src.replace('.', '-')
                 pkt_id = f"{timestamp_id}_{clean_src}"
@@ -31,7 +46,7 @@ def packet_callback(packet):
                 # Extract source IP for logging
                 src = packet[scapy.IP].src
                 
-                # 2. Save File
+                # 5. Save File
                 with open(f"{CAPTURE_DIR}/{pkt_id}.html", "w", encoding="utf-8") as f: f.write(payload)
                 
                 data_entry = {
@@ -40,7 +55,7 @@ def packet_callback(packet):
                     "snippet": f"[SECRET] {payload[:80]}", "type": "ALERT"
                 }
                 
-                # 3. SAVE TO BOTH LISTS (View + History)
+                # 6. SAVE TO BOTH LISTS (View + History)
                 STATUS["intercepted_data"].append(data_entry)
 
                 # History list (for all intercepted data, used in export)

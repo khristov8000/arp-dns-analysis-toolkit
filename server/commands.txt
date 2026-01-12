@@ -1,8 +1,7 @@
-Generate Server Certificate:
-openssl req -new -x509 -keyout key.pem -out cert.pem -days 365 -nodes
-
-Initialize HTTPS server:
+Testing SSL Strip
+- Port 80 Behavior: 301 Redirect to HTTPS
 sudo python3 server.py
 
-Initialize HTTP server:
-sudo python3 -m http.server 80
+DNS Spoofing / HTTP Phishing
+- Port 80 Behavior: Serves index.html directly (200 OK). Captures passwords over plain HTTP.
+sudo python3 server.py --http

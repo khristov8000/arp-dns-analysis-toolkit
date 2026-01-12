@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reset Password - Example Corp</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 10px; }
+        p { text-align: center; color: #666; margin-bottom: 20px; font-size: 14px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Reset Password</h2>
+        <p>Enter your email address and we'll send you a link to reset your password.</p>
+        <form action="/forgot" method="POST">
+            <input type="email" name="email" placeholder="Enter your email" required>
+            <button type="submit">Send Reset Link</button>
+        </form>
+        <a href="index.html" class="back-link">← Back to Login</a>
+    </div>
+</body>
+</html>

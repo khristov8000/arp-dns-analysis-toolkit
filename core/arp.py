@@ -44,7 +44,7 @@ def run_attack_loop(target_ip, gateway_ip, passive=False):
             log_msg("[*] ACTIVE ATTACK STARTED: ARP Poisoning Enabled.")
 
         while not STOP_EVENT.is_set():
-            # CRITICAL: Only send packets if NOT passive
+            # Only send packets if NOT passive
             if not passive:
                 spoof(target_ip, gateway_ip, target_mac, attacker_mac)
                 if mitm_mac:
