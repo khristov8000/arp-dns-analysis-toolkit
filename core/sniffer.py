@@ -10,10 +10,10 @@ interesting_streams = {}
 def packet_callback(packet):
     if STOP_EVENT.is_set(): return
     
-    # --- CONFIG ---
+    # Configuration
     is_silent = (STATUS.get("mode") == "SILENT")
 
-    # --- FILTERING ---
+    # Filtering
     has_data = packet.haslayer(scapy.Raw) and packet.haslayer(scapy.TCP)
     is_arp = packet.haslayer(scapy.ARP)
     
@@ -28,7 +28,7 @@ def packet_callback(packet):
         dst_ip = ""
         is_alert = False
 
-        # --- A. ARP MONITORING (Silent Mode Only) ---
+        # ARP Monitoring (Silent Mode Only)
         if is_arp and is_silent:
             op = packet[scapy.ARP].op
             src_ip = packet[scapy.ARP].psrc
@@ -38,16 +38,16 @@ def packet_callback(packet):
             if op == 1: 
                 title = "ARP REQUEST"
                 desc = f"Who has {dst_ip}? Tell {src_ip}"
-                type_class = "WARNING" 
+                type_class = "INFO" 
             elif op == 2: 
                 title = "ARP REPLY"
                 desc = f"{src_ip} is at {packet[scapy.ARP].hwsrc}"
                 type_class = "WARNING"
             
             is_alert = True
-            # We let execution continue to the SAVE block below
+            # Allow execution to continue to SAVE block
 
-        # --- B. DATA CAPTURE (TCP/HTTP) ---
+        # Data Capture (TCP/HTTP)
         elif has_data:
             payload = packet[scapy.Raw].load.decode('utf-8', errors='ignore')
             ip = packet[scapy.IP]
@@ -60,8 +60,8 @@ def packet_callback(packet):
             stream_key = (src_ip, tcp.sport)
             current_time = time.time()
 
-            # Scenario 1: Credentials Found
-            if "password=" in payload or "username=" in payload:
+            # Scenario 1: POST PAYLOAD
+            if "POST " in payload:
                 title = "POST REQUEST" 
                 if "\r\n\r\n" in payload:
                     _, desc = payload.split('\r\n\r\n', 1)
@@ -72,24 +72,7 @@ def packet_callback(packet):
                 is_alert = True
                 if stream_key in interesting_streams: del interesting_streams[stream_key]
 
-            # Scenario 2: POST Header
-            elif "POST " in payload:
-                if payload.endswith("\r\n\r\n"):
-                    interesting_streams[stream_key] = current_time
-                    title = "POST DETECTED"
-                    desc = "Header captured. Waiting for body..."
-                    type_class = "INFO"
-                    is_alert = True
-                else:
-                    title = "POST REQUEST"
-                    try:
-                        _, desc = payload.split('\r\n\r\n', 1)
-                    except:
-                        desc = "Form Data Found"
-                    type_class = "INFO"
-                    is_alert = True
-
-            # Scenario 3: Split Packet
+            # Scenario 2: Split Packet
             elif stream_key in interesting_streams:
                 if current_time - interesting_streams[stream_key] < 3.0:
                     title = "POST BODY"
@@ -101,14 +84,14 @@ def packet_callback(packet):
                     del interesting_streams[stream_key] 
                     return
 
-            # Scenario 4: Standard GET
+            # Scenario 3: Standard GET
             elif "GET " in payload:
                 title = "PAGE LOAD"
                 desc = payload.split('\r\n')[0]
                 type_class = "INFO"
                 is_alert = True
 
-            # Scenario 5: Server Responses
+            # Scenario 4: Server Responses
             elif payload.startswith("HTTP/"):
                 title = "SERVER RESPONSE"
                 try: desc = payload.split('\r\n')[0]
@@ -116,10 +99,10 @@ def packet_callback(packet):
                 type_class = "WARNING" 
                 is_alert = True
 
-        # --- COMMON SAVE LOGIC ---
+        # Common Save Logic
         if not is_alert: return
 
-        # Simple De-Duplication for UI cleanliness
+        # Simple De-Duplication
         if len(STATUS["intercepted_data"]) > 0:
             last_entry = STATUS["intercepted_data"][-1]
             if last_entry.get("src") == src_ip and last_entry.get("title") == title and last_entry.get("snippet") == desc:
@@ -148,7 +131,7 @@ def packet_callback(packet):
             "type": type_class
         }
         
-        # PUSH TO UI
+        # Push to UI
         STATUS["intercepted_data"].append(data_entry)
         STATUS["all_intercepted_data"].append(data_entry)
         

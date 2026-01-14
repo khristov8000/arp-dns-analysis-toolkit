@@ -2,13 +2,13 @@ import threading
 import os
 import shutil
 
-# --- GLOBAL CONFIGURATION ---
+# Global Configuration
 SSL_STRIP_PORT = 10000 
 CAPTURE_DIR = "captured_pages"
 STOP_EVENT = threading.Event()
 
-# --- GLOBAL STATE DICTIONARY ---
-# This is shared between Flask, Sniffer, ARP, and DNS.
+# Global State Dictionary
+# Shared between Flask, Sniffer, ARP, and DNS modules
 STATUS = {
     "state": "IDLE",
     "mode": "NONE",
@@ -36,7 +36,7 @@ STATUS = {
     "dns_ip": ""
 }
 
-# --- INITIALIZATION ---
+# Initialization
 # Create capture directory on startup
 if not os.path.exists(CAPTURE_DIR):
     os.makedirs(CAPTURE_DIR)

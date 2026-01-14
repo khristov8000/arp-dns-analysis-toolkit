@@ -10,8 +10,8 @@ The lab is hosted entirely within Oracle VirtualBox using a **3-Tier topology** 
 
 - **Isolation Method:** **Internal Network (ARP_Lab)**
   - This setting creates a virtual, isolated switch. All VMs on this network can only communicate with each other, ensuring the penetration test remains ethical and does not affect the host computer's external network.
-- **Packet Visibility:** The Attacker VM's network adapter (eth0) is set to **Promiscuous Mode: Allow All**.
-  - This allows the Kali machine to bypass standard network filtering and capture packets not explicitly addressed to its MAC address, which is crucial for intercepting traffic.
+- **Packet Visibility:** The Attacker VM's network adapter (eth0) is set to **Promiscuous Mode: Deny**.
+  - This simulates a realistic **Switched Network** environment. The Attacker cannot see traffic between other machines by default. Interception is achieved solely through the ARP Poisoning mechanism implemented in the Python tool, rather than hypervisor settings.
 - **Network Addressing:** All machines are assigned static IP addresses from the reserved private range 192.168.1.0/24.
 
 ## 2\. Machine Roles and Configurations
@@ -96,14 +96,13 @@ A comprehensive Python/Flask-based Man-in-the-Middle toolkit for network securit
   - Target IP: Machine to intercept
   - Gateway IP: Default gateway
 
-#### 3. Silent Mode (Passive Monitoring)
-- **Function:** Passive network sniffer with no active spoofing
-- **Use Case:** Network monitoring without modifying traffic
+#### 3. Silent Mode (Stealth Monitor)
+- **Function:** Places the network interface into Promiscuous Mode to passively sniff traffic.
+- **Use Case:** Undetected intelligence gathering and traffic pattern analysis.
 - **Features:**
-  - No ARP poisoning
-  - No DNS injection
-  - Listens to broadcast traffic only
-  - Stealth-focused operation
+  - **No Active Injection:** Does not perform ARP poisoning or DNS spoofing.
+  - **Promiscuous Sniffing:** Captures all Broadcast traffic (ARP, DHCP) and any Unicast traffic visible to the interface (simulating a compromised switch port or hub).
+  - **IDS Evasion:** Completely invisible to Intrusion Detection Systems as no malicious packets are generated.
 
 ### Features
 
@@ -288,9 +287,9 @@ pip3 install scapy flask netifaces python-iptables requests
 
 #### Silent Mode
 - **Dependencies:** `scapy`, `flask`, `netifaces`
-- **What it does:** Passive network sniffing without active spoofing
-- **Requirements:** Network interface name only
-- **Stealth:** No ARP poisoning, no DNS injection - pure listening mode
+- **What it does:** Monitors network "noise" (ARP Broadcasts) and unencrypted data without manipulating the ARP cache.
+- **Requirements:** Network interface (eth0) only.
+- **Stealth:** Zero-footprint operation; useful for mapping trust relationships (who is talking to whom) before attacking.
 
 ### Start the Dashboard
 
@@ -357,12 +356,15 @@ pip3 install scapy flask netifaces python-iptables requests
 
 **Silent Mode Configuration**
 
-1. **Set Monitoring Targets:**
-   Silent mode can monitor broadcast traffic or specific targets.
-   * **TARGET IP(s):** Enter one or multiple IPs to specifically monitor their traffic.
-   * **GATEWAY IP:** 192.168.1.30 (The Gateway)
+1. **Select Interface:**
+   Ensure `eth0` (or your active interface) is selected.
 
-2. **Click:** `START MONITOR`
+2. **Targeting (Optional):**
+   * Unlike active attacks, Silent Mode does not require specific Target or Gateway IPs to function, as it monitors the entire segment.
+   * You may leave the target fields blank or set them for your own reference.
+
+3. **Click:** `START MONITOR`
+   * The console will immediately begin logging ARP Broadcast traffic (e.g., "ARP Who has...").
 
 ---
 
@@ -393,12 +395,11 @@ pip3 install scapy flask netifaces python-iptables requests
 
 **For Silent Mode**
 
-1. **Generate Any Network Traffic:**
-   The sniffer will passively capture all packets on the network
-   * Browse websites
-   * Make DNS queries
-   * Transfer files
-   * All traffic appears in the Kali console logs
+1. **Observe Network "Noise":**
+   * Without active poisoning, standard switches filter unicast traffic.
+   * You will primarily see **Broadcast Packets** in the console (Green logs).
+   * **Look for:** `[SNIFFER] ARP Who has 192.168.1.1? Tell 192.168.1.20`
+   * **Analysis:** This tells you which machines are actively trying to communicate with the Gateway, helping you identify active targets for a subsequent Poisoning attack.
 
 ---
 

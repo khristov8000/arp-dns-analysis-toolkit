@@ -6,7 +6,7 @@ import csv
 import io
 import zipfile 
 
-# --- CRITICAL IMPORT ---
+# Critical Import
 # We import STATUS from core so we share the same memory as the sniffer
 from core import STATUS, STOP_EVENT, CAPTURE_DIR
 
@@ -18,7 +18,7 @@ from core.sniffer import start_sniffer
 from core.scanner import scan_network   
 from core.utils import log_msg, activate_silence_timer       
 
-# --- SILENT MONITOR THREAD ---
+# Silent Monitor Thread
 def run_silent_monitor():
     """Keeps the system in RUNNING state without poisoning ARP"""
     STATUS["state"] = "RUNNING"
@@ -50,14 +50,14 @@ def create_app():
             STATUS["intercepted_data"] = []
             return jsonify({"status": "cleared"})
             
-        # --- STOP LOGIC ---
+        # Stop Logic
         if act == 'stop':
             STOP_EVENT.set() 
             activate_silence_timer()
             STATUS["state"] = "STOPPING..." 
             return jsonify({"status": "stopped"})
 
-        # --- START LOGIC ---
+        # Start Logic
         if 'start' in act:
             if threads['attack'] and threads['attack'].is_alive():
                  return jsonify({"status": "already_running", "message": "Attack is already active."})
