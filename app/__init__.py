@@ -1,16 +1,21 @@
 from flask import Flask, render_template, jsonify, request, Response, send_file
 import threading
 import time
+import os
+import csv
+import io
+import zipfile 
+
+# --- CRITICAL IMPORT ---
+# We import STATUS from core so we share the same memory as the sniffer
 from core import STATUS, STOP_EVENT, CAPTURE_DIR
+
+# Import Modules
 from core.arp import run_attack_loop
 from core.ssl_strip import run_ssl_strip
 from core.dns import start_dns_spoofing 
 from core.sniffer import start_sniffer
 from core.scanner import scan_network   
-import csv
-import io
-import zipfile 
-import os
 from core.utils import log_msg, activate_silence_timer       
 
 # --- SILENT MONITOR THREAD ---
@@ -19,7 +24,6 @@ def run_silent_monitor():
     STATUS["state"] = "RUNNING"
     log_msg("[*] SILENT MODE: Monitoring traffic (No ARP Poisoning)")
     
-    # Wait here until Stop is pressed
     while not STOP_EVENT.is_set():
         time.sleep(1)
         
@@ -48,10 +52,8 @@ def create_app():
             
         # --- STOP LOGIC ---
         if act == 'stop':
-            STOP_EVENT.set() # Signal all threads to stop
+            STOP_EVENT.set() 
             activate_silence_timer()
-            
-            # Force status update immediately so UI button works
             STATUS["state"] = "STOPPING..." 
             return jsonify({"status": "stopped"})
 
@@ -60,9 +62,9 @@ def create_app():
             if threads['attack'] and threads['attack'].is_alive():
                  return jsonify({"status": "already_running", "message": "Attack is already active."})
 
-            STOP_EVENT.clear() # Reset signal
+            STOP_EVENT.clear() 
             
-            # Setup configuration
+            # Setup Configuration
             target_list = req.get('targets', [])
             if not target_list and req.get('target'):
                 target_list = [req.get('target')]
@@ -77,7 +79,7 @@ def create_app():
             elif act == 'start_sslstrip': STATUS["active_tab"] = 'ssl'
             elif act == 'start_silent': STATUS["active_tab"] = 'silent'
             
-            # 1. Start Sniffer (Common for all)
+            # 1. Start Sniffer (Common)
             if not threads['sniffer'] or not threads['sniffer'].is_alive():
                 threads['sniffer'] = threading.Thread(target=start_sniffer, daemon=True)
                 threads['sniffer'].start()
@@ -85,7 +87,6 @@ def create_app():
             # 2. Select Attack Mode
             if act == 'start_silent':
                 STATUS["mode"] = "SILENT"
-                # Launch Dummy Monitor (No ARP)
                 threads['attack'] = threading.Thread(target=run_silent_monitor, daemon=True)
                 threads['attack'].start()
 
@@ -93,7 +94,7 @@ def create_app():
                 STATUS["mode"] = "DNS SPOOF"
                 threads['dns'] = threading.Thread(target=start_dns_spoofing, daemon=True)
                 threads['dns'].start()
-                # Launch Active ARP Attack (2 Arguments Only)
+                # Active ARP
                 threads['attack'] = threading.Thread(
                     target=run_attack_loop, 
                     args=(STATUS["targets"], STATUS["gateway"]), 
@@ -105,7 +106,7 @@ def create_app():
                 STATUS["mode"] = "SSL STRIP"
                 threads['ssl'] = threading.Thread(target=run_ssl_strip, daemon=True)
                 threads['ssl'].start()
-                # Launch Active ARP Attack (2 Arguments Only)
+                # Active ARP
                 threads['attack'] = threading.Thread(
                     target=run_attack_loop, 
                     args=(STATUS["targets"], STATUS["gateway"]), 
@@ -147,8 +148,10 @@ def create_app():
                     item.get('type', ''), item.get('snippet', ''), item.get('id', '')
                 ])
             zf.writestr('intercept_report.csv', si.getvalue())
+            
             logs_content = "\n".join(STATUS["all_logs"])
             zf.writestr('console_logs.txt', logs_content)
+            
             if os.path.exists(CAPTURE_DIR):
                 for root, dirs, files in os.walk(CAPTURE_DIR):
                     for file in files:

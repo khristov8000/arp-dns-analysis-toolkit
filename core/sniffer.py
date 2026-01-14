@@ -1,8 +1,8 @@
 import scapy.all as scapy
 import uuid
 import time
-from . import STATUS, STOP_EVENT, CAPTURE_DIR
-from .utils import log_msg
+from core import STATUS, STOP_EVENT, CAPTURE_DIR
+from core.utils import log_msg
 
 # Track streams where we saw a POST header but no body yet
 interesting_streams = {} 
@@ -14,7 +14,6 @@ def packet_callback(packet):
     is_silent = (STATUS.get("mode") == "SILENT")
 
     # --- FILTERING ---
-    # We accept TCP (Data) OR ARP (Logs)
     has_data = packet.haslayer(scapy.Raw) and packet.haslayer(scapy.TCP)
     is_arp = packet.haslayer(scapy.ARP)
     
@@ -22,36 +21,43 @@ def packet_callback(packet):
         return
 
     try:
-        # --- A. ARP MONITORING ---
-        # We log ARP packets only in Silent Mode to show "Activity"
+        title = ""
+        desc = ""
+        type_class = "INFO"
+        src_ip = ""
+        dst_ip = ""
+        is_alert = False
+
+        # --- A. ARP MONITORING (Silent Mode Only) ---
         if is_arp and is_silent:
             op = packet[scapy.ARP].op
             src_ip = packet[scapy.ARP].psrc
             dst_ip = packet[scapy.ARP].pdst
             
+            # Construct Data Entry for UI
             if op == 1: 
-                log_msg(f"[SNIFFER] ARP Who has {dst_ip}? Tell {src_ip}")
+                title = "ARP REQUEST"
+                desc = f"Who has {dst_ip}? Tell {src_ip}"
+                type_class = "WARNING" 
             elif op == 2: 
-                log_msg(f"[SNIFFER] ARP Reply: {src_ip} is at {packet[scapy.ARP].hwsrc}")
-            return # Done with ARP
+                title = "ARP REPLY"
+                desc = f"{src_ip} is at {packet[scapy.ARP].hwsrc}"
+                type_class = "WARNING"
+            
+            is_alert = True
+            # We let execution continue to the SAVE block below
 
         # --- B. DATA CAPTURE (TCP/HTTP) ---
-        # This part now runs for Silent Mode too!
-        if has_data:
+        elif has_data:
             payload = packet[scapy.Raw].load.decode('utf-8', errors='ignore')
             ip = packet[scapy.IP]
             tcp = packet[scapy.TCP]
+            src_ip = ip.src
+            dst_ip = ip.dst
             
-            # Filter proxy noise
             if tcp.sport == 10000 or tcp.dport == 10000: return 
 
-            # --- CLASSIFICATION ---
-            title = ""
-            desc = ""
-            type_class = "INFO"
-            is_alert = False
-            
-            stream_key = (ip.src, tcp.sport)
+            stream_key = (src_ip, tcp.sport)
             current_time = time.time()
 
             # Scenario 1: Credentials Found
@@ -110,45 +116,45 @@ def packet_callback(packet):
                 type_class = "WARNING" 
                 is_alert = True
 
-            else:
+        # --- COMMON SAVE LOGIC ---
+        if not is_alert: return
+
+        # Simple De-Duplication for UI cleanliness
+        if len(STATUS["intercepted_data"]) > 0:
+            last_entry = STATUS["intercepted_data"][-1]
+            if last_entry.get("src") == src_ip and last_entry.get("title") == title and last_entry.get("snippet") == desc:
                 return 
 
-            # --- DUPLICATE CHECK ---
-            if not is_alert: return
-            if len(STATUS["intercepted_data"]) > 0:
-                last_entry = STATUS["intercepted_data"][-1]
-                if last_entry["src"] == ip.src and last_entry["title"] == title:
-                    if last_entry["snippet"] == desc:
-                        return 
-
-            # --- SAVE & LOG ---
-            timestamp_str = time.strftime('%H%M%S')
-            clean_ip = ip.src.replace('.', '-')
-            clean_title = title.replace(" ", "-").upper()
-            short_uuid = str(uuid.uuid4())[:4]
-            readable_id = f"{timestamp_str}_{clean_ip}_{clean_title}_{short_uuid}"
-            
+        timestamp_str = time.strftime('%H%M%S')
+        clean_ip = src_ip.replace('.', '-')
+        clean_title = title.replace(" ", "-").upper()
+        short_uuid = str(uuid.uuid4())[:4]
+        readable_id = f"{timestamp_str}_{clean_ip}_{clean_title}_{short_uuid}"
+        
+        # Save HTML only for Data packets
+        if has_data:
             try:
                 filepath = f"{CAPTURE_DIR}/{readable_id}.html"
                 with open(filepath, "w", encoding="utf-8") as f: f.write(payload)
             except: pass
 
-            data_entry = {
-                "id": readable_id,
-                "time": time.strftime('%H:%M:%S'),
-                "src": ip.src, 
-                "dst": ip.dst,
-                "title": title,          
-                "snippet": desc, 
-                "type": type_class
-            }
-            
-            STATUS["intercepted_data"].append(data_entry)
-            STATUS["all_intercepted_data"].append(data_entry)
-            
-            # Log Alerts to Console
-            if type_class == "ALERT":
-                log_msg(f"[!] {title} captured from {ip.src}")
+        data_entry = {
+            "id": readable_id,
+            "time": time.strftime('%H:%M:%S'),
+            "src": src_ip, 
+            "dst": dst_ip,
+            "title": title,          
+            "snippet": desc, 
+            "type": type_class
+        }
+        
+        # PUSH TO UI
+        STATUS["intercepted_data"].append(data_entry)
+        STATUS["all_intercepted_data"].append(data_entry)
+        
+        # Log High Priority Alerts to Console
+        if type_class == "ALERT":
+            log_msg(f"[!] {title} captured from {src_ip}")
 
     except Exception:
         pass
@@ -158,7 +164,6 @@ def start_sniffer():
     from .utils import set_promiscuous_mode 
     set_promiscuous_mode(interface, True)
     try:
-        # Store=0 prevents RAM usage buildup
         scapy.sniff(iface=interface, store=0, prn=packet_callback, 
                    stop_filter=lambda p: STOP_EVENT.is_set())
     except Exception as e:
